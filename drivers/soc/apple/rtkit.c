@@ -667,7 +667,7 @@ static int apple_rtkit_request_mbox_chan(struct apple_rtkit *rtk)
 	return 0;
 }
 
-static struct apple_rtkit *apple_rtkit_init(struct device *dev, void *cookie,
+struct apple_rtkit *apple_rtkit_init(struct device *dev, void *cookie,
 					    const char *mbox_name, int mbox_idx,
 					    const struct apple_rtkit_ops *ops)
 {
@@ -719,6 +719,7 @@ free_rtk:
 	kfree(rtk);
 	return ERR_PTR(ret);
 }
+EXPORT_SYMBOL_GPL(apple_rtkit_init);
 
 static int apple_rtkit_wait_for_completion(struct completion *c)
 {
@@ -895,7 +896,7 @@ int apple_rtkit_wake(struct apple_rtkit *rtk)
 }
 EXPORT_SYMBOL_GPL(apple_rtkit_wake);
 
-static void apple_rtkit_free(struct apple_rtkit *rtk)
+void apple_rtkit_free(struct apple_rtkit *rtk)
 {
 	mbox_free_channel(rtk->mbox_chan);
 	destroy_workqueue(rtk->wq);
@@ -907,6 +908,7 @@ static void apple_rtkit_free(struct apple_rtkit *rtk)
 	kfree(rtk->syslog_msg_buffer);
 	kfree(rtk);
 }
+EXPORT_SYMBOL_GPL(apple_rtkit_free);
 
 struct apple_rtkit *devm_apple_rtkit_init(struct device *dev, void *cookie,
 					  const char *mbox_name, int mbox_idx,
