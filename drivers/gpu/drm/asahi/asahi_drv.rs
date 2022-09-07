@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: GPL-2.0-only OR MIT
+#![allow(missing_docs)]
 
 //! Driver for the Apple AGX GPUs found in Apple Silicon SoCs.
 
 use kernel::{
     bindings,
+    c_str,
     device,
+    drm,
+    drm::{drv, gem, gem::shmem},
     error::{Result, to_result},
     io_mem::IoMem,
     module_platform_driver, of, platform,
@@ -12,14 +16,30 @@ use kernel::{
     soc::apple::rtkit,
     sync::{Ref, RefBorrow},
     sync::smutex::Mutex,
+    PointerWrapper,
 };
+
+use kernel::macros::vtable;
+
+mod asahi_mmu;
+mod asahi_gem;
 
 const ASC_CTL_SIZE: usize = 0x4000;
 const CPU_CONTROL: usize = 0x44;
 const CPU_RUN: u32 = 0x1 << 4; // BIT(4)
 
+const INFO: drv::DriverInfo = drv::DriverInfo {
+    major: 0,
+    minor: 0,
+    patchlevel: 0,
+    name: c_str!("asahi"),
+    desc: c_str!("Apple AGX Graphics"),
+    date: c_str!("20220831"),
+};
+
 struct AsahiData {
     dev: device::Device,
+    uat: asahi_mmu::UAT,
     rtkit: Mutex<Option<rtkit::RTKit<AsahiDevice>>>,
 }
 
@@ -27,13 +47,12 @@ struct AsahiResources {
     asc: IoMem<ASC_CTL_SIZE>,
 }
 
-type DeviceData = device::Data<(), AsahiResources, AsahiData>;
+type DeviceData = device::Data<drv::Registration<AsahiDevice>, AsahiResources, AsahiData>;
 
 struct AsahiDevice;
 
 impl AsahiDevice {
-    fn start_cpu(data: RefBorrow<'_, DeviceData>) -> Result {
-        let res = data.resources().ok_or(ENXIO)?;
+    fn start_cpu(res: &mut AsahiResources) -> Result {
         let val = res.asc.readl_relaxed(CPU_CONTROL);
 
         res.asc.writel_relaxed(val | CPU_RUN, CPU_CONTROL);
@@ -44,11 +63,32 @@ impl AsahiDevice {
 
 #[vtable]
 impl rtkit::Operations for AsahiDevice {
-    type Data = ();
-}
+    type Data = Ref<DeviceData>;
+    type Buffer = asahi_gem::ObjectRef;
 
-extern "C" {
-    pub fn asahi_mmu_init(dev: *mut bindings::device) -> core::ffi::c_int;
+    fn shmem_alloc(
+        data: <Self::Data as PointerWrapper>::Borrowed<'_>,
+        size: usize,
+    ) -> Result<Self::Buffer> {
+        let mut guard = data.registrations().ok_or(ENXIO)?;
+        let mut reg = guard.as_pinned_mut();
+        let dev = reg.device();
+        dev_info!(dev, "shmem_alloc() {:#x} bytes\n", size);
+
+        let mut obj = asahi_gem::new_object(dev, size)?;
+        obj.vmap()?;
+        let map = obj.map_into(data.uat.kernel_context())?;
+        dev_info!(dev, "shmem_alloc() -> VA {:#x}\n", map.iova());
+        Ok(obj)
+    }}
+
+#[vtable]
+impl drv::Driver for AsahiDevice {
+    type Data = ();
+    type Object = asahi_gem::Object;
+
+    const INFO: drv::DriverInfo = INFO;
+    const FEATURES: u32 = drv::FEAT_GEM | drv::FEAT_RENDER;
 }
 
 impl platform::Driver for AsahiDevice {
@@ -61,20 +101,31 @@ impl platform::Driver for AsahiDevice {
     fn probe(pdev: &mut platform::Device, _id_info: Option<&Self::IdInfo>) -> Result<Ref<DeviceData>> {
         let dev = device::Device::from_dev(pdev);
 
-        dev_info!(dev, "probing!\n");
+        dev_info!(dev, "Probing!\n");
+
+        pdev.set_dma_masks((1 << asahi_mmu::UAT_OAS) - 1);
 
         // TODO: add device abstraction to ioremap by name
         // SAFETY: AGX does DMA via the UAT IOMMU (mostly)
-        let asc_reg = unsafe { pdev.ioremap_resource(0)? };
+        let asc_res = unsafe { pdev.ioremap_resource(0)? };
+
+        let mut res = AsahiResources {
+            // SAFETY: This device does DMA via the UAT IOMMU.
+            asc: asc_res
+        };
+
+        // Start the coprocessor CPU, so UAT can initialize the handoff
+        AsahiDevice::start_cpu(&mut res)?;
+
+        let uat = asahi_mmu::UAT::new(&dev)?;
+        let reg = drm::drv::Registration::<AsahiDevice>::new(&dev)?;
 
         let data = kernel::new_device_data!(
-            (),
-            AsahiResources {
-                // SAFETY: This device does DMA via the UAT IOMMU.
-                asc: asc_reg,
-            },
+            reg,
+            res,
             AsahiData {
-                dev: dev,
+                uat,
+                dev,
                 rtkit: Mutex::new(None),
             },
             "Asahi::Registrations"
@@ -82,16 +133,23 @@ impl platform::Driver for AsahiDevice {
 
         let data = Ref::<DeviceData>::from(data);
 
-        AsahiDevice::start_cpu(data.as_ref_borrow())?;
+        {
+            let mut guard = data.registrations().ok_or(ENXIO)?;
+            let mut reg = guard.as_pinned_mut();
+            let mut dev = reg.device();
+            dev_info!(dev, "info through dev\n");
+        }
 
-        to_result(unsafe {
-            asahi_mmu_init((&data.dev as &dyn device::RawDevice).raw_device())
-        })?;
-
-        let mut rtkit = unsafe { rtkit::RTKit::<AsahiDevice>::new(&data.dev, None, 0, ()) }?;
+        let mut rtkit = unsafe { rtkit::RTKit::<AsahiDevice>::new(&data.dev, None, 0, data.clone()) }?;
 
         rtkit.boot()?;
         *data.rtkit.lock() = Some(rtkit);
+
+        kernel::drm_device_register!(
+            data.registrations().ok_or(ENXIO)?.as_pinned_mut(),
+            (),
+            0
+        )?;
 
         dev_info!(data.dev, "probed!\n");
         Ok(data)
