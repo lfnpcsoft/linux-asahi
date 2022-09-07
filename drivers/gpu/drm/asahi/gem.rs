@@ -21,8 +21,6 @@ use kernel::{
 
 use kernel::drm::gem::BaseObject;
 
-use crate::asahi_mmu;
-
 pub(crate) struct DriverObject {
 
 }
@@ -31,7 +29,7 @@ pub(crate) type Object = shmem::Object<DriverObject>;
 
 pub(crate) struct ObjectRef {
     pub(crate) gem: gem::ObjectRef<shmem::Object<DriverObject>>,
-    pub(crate) mapping: Option<asahi_mmu::Mapping>,
+    pub(crate) mapping: Option<crate::mmu::Mapping>,
     pub(crate) vmap: Option<shmem::VMap<DriverObject>>,
 }
 
@@ -43,7 +41,7 @@ impl ObjectRef {
         Ok(self.vmap.as_ref().unwrap())
     }
 
-    pub(crate) fn map_into(&mut self, context: &asahi_mmu::Context) -> Result<&asahi_mmu::Mapping> {
+    pub(crate) fn map_into(&mut self, context: &crate::mmu::Context) -> Result<&crate::mmu::Mapping> {
         if self.mapping.is_some() {
             Err(EBUSY)
         } else {
@@ -78,7 +76,7 @@ impl gem::BaseDriverObject<Object> for DriverObject {
 }
 
 impl shmem::DriverObject for DriverObject {
-    type Driver = crate::AsahiDevice;
+    type Driver = crate::driver::AsahiDevice;
 }
 
 impl rtkit::Buffer for ObjectRef {
