@@ -18,6 +18,7 @@ pub(crate) type GPUArray<T> = object::GPUArray<T, alloc::SimpleAllocation<T>>;
 pub(crate) use crate::alloc::Allocator as _Allocator;
 pub(crate) type Allocator = alloc::SimpleAllocator;
 pub(crate) use core::marker::PhantomData;
+pub(crate) use core::fmt::Debug;
 
 #[derive(Default, Debug, Copy, Clone)]
 pub(crate) struct F32(u32);
