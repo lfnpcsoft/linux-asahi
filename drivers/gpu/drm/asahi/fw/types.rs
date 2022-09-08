@@ -4,21 +4,21 @@
 
 //! Common types for firmware structure definitions
 
+use crate::{alloc, object};
 pub(crate) use kernel::macros::versions;
-use crate::{object, alloc};
 
-use core::sync::atomic;
-use core::fmt;
-use core::ops::{Index, IndexMut, Deref, DerefMut};
+pub(crate) use crate::object::{GPUPointer, GPUStruct};
 pub(crate) use ::alloc::boxed::Box;
-pub(crate) use core::sync::atomic::{AtomicU64, AtomicU32, AtomicU16, AtomicU8};
-pub(crate) use crate::object::{GPUStruct, GPUPointer};
+use core::fmt;
+use core::ops::{Deref, DerefMut, Index, IndexMut};
+use core::sync::atomic;
+pub(crate) use core::sync::atomic::{AtomicU16, AtomicU32, AtomicU64, AtomicU8};
 pub(crate) type GPUObject<T> = object::GPUObject<T, alloc::SimpleAllocation<T>>;
 pub(crate) type GPUArray<T> = object::GPUArray<T, alloc::SimpleAllocation<T>>;
 pub(crate) use crate::alloc::Allocator as _Allocator;
 pub(crate) type Allocator = alloc::SimpleAllocator;
-pub(crate) use core::marker::PhantomData;
 pub(crate) use core::fmt::Debug;
+pub(crate) use core::marker::PhantomData;
 
 #[derive(Default, Debug, Copy, Clone)]
 pub(crate) struct F32(u32);
@@ -31,10 +31,19 @@ impl F32 {
 
 #[macro_export]
 macro_rules! const_f32 {
-    ($val:expr) => {
-        {
-            const _K: F32 = F32::new($val);
-            _K
+    ($val:expr) => {{
+        const _K: F32 = F32::new($val);
+        _K
+    }};
+}
+
+#[macro_export]
+macro_rules! no_debug {
+    ($type:ty) => {
+        impl Debug for $type {
+            fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+                write!(f, "...")
+            }
         }
     };
 }
