@@ -3,6 +3,7 @@
 
 //! GPU initialization / global structures
 
+use crate::no_debug;
 use super::channels;
 use super::types::*;
 
@@ -132,8 +133,8 @@ pub(crate) mod raw {
     }
 
     #[versions(AGX)]
-    #[derive(Debug, Default)]
-    #[repr(C)]
+    #[derive(Default)]
+    #[repr(C, packed(4))]
     pub(crate) struct HWDataA {
         pub(crate) unk_0: u32,
         pub(crate) unk_4: u32,
@@ -485,11 +486,13 @@ pub(crate) mod raw {
 
         #[ver(V >= V13_0b4)]
         pub(crate) unk_3d6c: Array<0x38, u8>,
-
     }
 
+    #[versions(AGX)]
+    no_debug!(HWDataA::ver);
+
     #[derive(Debug, Default, Clone, Copy)]
-    #[repr(C, packed)]
+    #[repr(C)]
     pub(crate) struct IOMapping {
         pub(crate) phys_addr: u64,
         pub(crate) virt_addr: u64,
@@ -669,7 +672,7 @@ pub(crate) mod raw {
         #[ver(V >= V13_0b4)]
         pub(crate) unk_b38_4: u32,
 
-        pub(crate) unk_b38: Array<0x6, u64>,
+        pub(crate) unk_b38: Array<0xc, u32>,
         pub(crate) unk_b68: u32,
 
         #[ver(V >= V13_0b4)]
@@ -830,6 +833,8 @@ pub(crate) mod raw {
         pub(crate) __pad1: Pad<0x5c>,
         pub(crate) gpu_scratch: RuntimeScratch,
     }
+    #[versions(AGX)]
+    no_debug!(RuntimePointers::ver<'_>);
 
     #[derive(Debug, Default, Clone, Copy)]
     #[repr(C, packed)]
@@ -1039,6 +1044,7 @@ pub(crate) mod raw {
     }
 
     #[versions(AGX)]
+    #[derive(Debug)]
     #[repr(C)]
     pub(crate) struct InitData<'a> {
         #[ver(V >= V13_0b4)]
@@ -1185,6 +1191,7 @@ impl GPUStruct for Globals::ver {
 }
 
 #[versions(AGX)]
+#[derive(Debug)]
 pub(crate) struct InitData {
     pub(crate) unk_buf: GPUArray<u8>,
     pub(crate) runtime_pointers: GPUObject<RuntimePointers::ver>,
