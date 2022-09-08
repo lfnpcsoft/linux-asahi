@@ -39,6 +39,7 @@ pub(crate) struct AsahiData {
     dev: device::Device,
     uat: crate::mmu::UAT,
     rtkit: Mutex<Option<rtkit::RTKit<AsahiDevice>>>,
+    initdata: Mutex<fw::types::GPUObject<fw::initdata::InitDataG13GV13_0b4>>,
 }
 
 pub(crate) struct AsahiResources {
@@ -118,6 +119,11 @@ impl platform::Driver for AsahiDevice {
         let uat = mmu::UAT::new(&dev)?;
         let reg = drm::drv::Registration::<AsahiDevice>::new(&dev)?;
 
+        let mut allocator = alloc::SimpleAllocator::new(reg.device(), uat.kernel_context(),
+        0x20);
+        let mut builder = initdata::InitDataBuilderG13GV13_0b4::new(&mut allocator);
+        let initdata = builder.build(&initdata::HWCONFIG_T8103)?;
+
         let data = kernel::new_device_data!(
             reg,
             res,
@@ -125,6 +131,7 @@ impl platform::Driver for AsahiDevice {
                 uat,
                 dev,
                 rtkit: Mutex::new(None),
+                initdata: Mutex::new(initdata),
             },
             "Asahi::Registrations"
         )?;
