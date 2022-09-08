@@ -738,12 +738,3 @@ impl<'a> InitDataBuilder::ver<'a> {
         })
     }
 }
-
-#[allow(dead_code)]
-const fn assert_foo_equals_bar() {
-    assert!(core::mem::size_of::<GPUArray<u8>>() < 256);
-    assert!(core::mem::size_of::<InitDataG13GV12_3>() < 512);
-    assert!(core::mem::size_of::<GPUObject<InitDataG13GV12_3>>() < 64);
-}
-
-// const _: () = assert_foo_equals_bar();
