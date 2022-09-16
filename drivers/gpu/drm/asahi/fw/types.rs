@@ -158,6 +158,18 @@ impl<const N: usize, T: Sized + fmt::Debug> fmt::Debug for Array<N, T> {
     }
 }
 
+#[macro_export]
+macro_rules! trivial_gpustruct {
+    ($type:ident) => {
+        #[derive(Debug, Default)]
+        pub(crate) struct $type {}
+
+        impl GPUStruct for $type {
+            type Raw<'a> = raw::$type;
+        }
+    };
+}
+
 /*
 #[derive(Debug, Default)]
 #[repr(transparent)]
