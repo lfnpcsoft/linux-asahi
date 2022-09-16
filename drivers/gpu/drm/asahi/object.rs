@@ -243,6 +243,9 @@ impl<T: GPUStruct, U: Allocation<T>> GPUObject<T, U> {
     }
 }
 
+pub(crate) trait OpaqueGPUObject {}
+impl<'a, T: GPUStruct, U: Allocation<T>> OpaqueGPUObject for GPUObject<T, U> {}
+
 impl<'a, T: GPUStruct, U: Allocation<T>> Deref for GPUObject<T, U> {
     type Target = T;
 
