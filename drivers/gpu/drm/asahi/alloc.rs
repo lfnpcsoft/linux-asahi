@@ -7,15 +7,16 @@
 
 use kernel::{
     drm::{device, gem, gem::shmem, mm},
-    prelude::*,
     error::Result,
+    prelude::*,
 };
 
-use crate::object::{GPUObject, GPUStruct, GPUArray};
+use crate::object::{GPUArray, GPUObject, GPUStruct};
 
 use alloc::fmt;
-use core::mem;
 use core::fmt::{Debug, Formatter};
+use core::mem;
+use core::mem::MaybeUninit;
 
 pub(crate) trait Allocation<T>: Debug {
     fn ptr(&self) -> *mut T;
@@ -37,12 +38,24 @@ pub(crate) trait Allocator {
     fn new_boxed<T: GPUStruct>(
         &mut self,
         inner: Box<T>,
-        callback: impl for<'a> FnOnce(&'a T) -> Result<Box<T::Raw<'a>>>,
+        callback: impl for<'a> FnOnce(&'a T, *mut MaybeUninit<T::Raw<'a>>) -> Result<&'a mut T::Raw<'a>>,
     ) -> Result<GPUObject<T, Self::Allocation<T>>>;
+
+    fn new_inplace<T: GPUStruct + Default>(
+        &mut self,
+        inner: T,
+        callback: impl for<'a> FnOnce(&'a T, *mut MaybeUninit<T::Raw<'a>>) -> Result<&'a mut T::Raw<'a>>,
+    ) -> Result<GPUObject<T, Self::Allocation<T>>>
+    where
+        <T as GPUStruct>::Raw<'static>: Default;
+
+    fn new_default<T: GPUStruct + Default>(&mut self) -> Result<GPUObject<T, Self::Allocation<T>>>
+    where
+        for<'a> <T as GPUStruct>::Raw<'a>: Default;
 
     fn array_empty<T: Sized + Default>(
         &mut self,
-        count: usize
+        count: usize,
     ) -> Result<GPUArray<T, Self::Allocation<T>>>;
 
     fn device(&self) -> &device::Device;
@@ -57,8 +70,7 @@ pub(crate) struct SimpleAllocation<T> {
     obj: crate::gem::ObjectRef,
 }
 
-impl<T> Debug for SimpleAllocation<T>
-{
+impl<T> Debug for SimpleAllocation<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct(core::any::type_name::<SimpleAllocation<T>>())
             .field("ptr", &format_args!("{:p}", self.ptr))
@@ -101,90 +113,107 @@ impl SimpleAllocator {
             min_align,
         }
     }
+
+    #[inline(never)]
+    fn alloc_object<T: GPUStruct>(&mut self) -> Result<SimpleAllocation<T>> {
+        let size = mem::size_of::<T::Raw<'static>>();
+        let size_aligned = (size + crate::mmu::UAT_PGSZ - 1) & !crate::mmu::UAT_PGMSK;
+        let align = self.min_align.max(mem::align_of::<T::Raw<'static>>());
+        let offset = (size_aligned - size) & !(align - 1);
+
+        dev_info!(
+            &self.dev,
+            "Allocator::new: size={:#x} size_al={:#x} al={:#x} off={:#x}",
+            size,
+            size_aligned,
+            align,
+            offset
+        );
+
+        let mut obj = crate::gem::new_object(&self.dev, size_aligned)?;
+        let p = obj.vmap()?.as_mut_ptr() as *mut u8;
+        let map = obj.map_into(&self.context)?;
+
+        let ptr = unsafe { p.add(offset) } as *mut T;
+        let gpu_ptr = (map.iova() + offset) as u64;
+
+        dev_info!(
+            &self.dev,
+            "Allocator::new -> {:#?} / {:#?} | {:#x} / {:#x}",
+            p,
+            ptr,
+            map.iova(),
+            gpu_ptr
+        );
+
+        Ok(SimpleAllocation {
+            dev: self.dev.clone(),
+            ptr,
+            gpu_ptr,
+            size,
+            context: self.context.clone(),
+            obj,
+        })
+    }
 }
 
 impl Allocator for SimpleAllocator {
     type Allocation<T> = SimpleAllocation<T>;
 
+    #[inline(never)]
     fn new<T: GPUStruct>(
         &mut self,
         inner: T,
         callback: impl for<'a> FnOnce(&'a T) -> T::Raw<'a>,
     ) -> Result<GPUObject<T, Self::Allocation<T>>> {
-        let size = mem::size_of::<T::Raw<'static>>();
-        let size_aligned = (size + crate::mmu::UAT_PGSZ - 1) & !crate::mmu::UAT_PGMSK;
-        let align = self.min_align.max(mem::align_of::<T::Raw<'static>>());
-        let offset = (size_aligned - size) & !(align - 1);
-
-        dev_info!(&self.dev, "Allocator::new: size={:#x} size_al={:#x} al={:#x} off={:#x}", size, size_aligned, align, offset);
-
-        let mut obj = crate::gem::new_object(&self.dev, size_aligned)?;
-        let p = obj.vmap()?.as_mut_ptr() as *mut u8;
-        let map = obj.map_into(&self.context)?;
-
-        let ptr = unsafe { p.add(offset) } as *mut T;
-        let gpu_ptr = (map.iova() + offset) as u64;
-
-        dev_info!(&self.dev, "Allocator::new -> {:#?} / {:#?} | {:#x} / {:#x}",
-        p, ptr, map.iova(), gpu_ptr);
-
-        let alloc = SimpleAllocation {
-            dev: self.dev.clone(),
-            ptr,
-            gpu_ptr,
-            size,
-            context: self.context.clone(),
-            obj,
-        };
-
-        GPUObject::<T, Self::Allocation<T>>::new(alloc, inner, callback)
+        GPUObject::<T, Self::Allocation<T>>::new(self.alloc_object()?, inner, callback)
     }
 
+    #[inline(never)]
     fn new_boxed<T: GPUStruct>(
         &mut self,
         inner: Box<T>,
-        callback: impl for<'a> FnOnce(&'a T) -> Result<Box<T::Raw<'a>>>,
+        callback: impl for<'a> FnOnce(&'a T, *mut MaybeUninit<T::Raw<'a>>) -> Result<&'a mut T::Raw<'a>>,
     ) -> Result<GPUObject<T, Self::Allocation<T>>> {
-        let size = mem::size_of::<T::Raw<'static>>();
-        let size_aligned = (size + crate::mmu::UAT_PGSZ - 1) & !crate::mmu::UAT_PGMSK;
-        let align = self.min_align.max(mem::align_of::<T::Raw<'static>>());
-        let offset = (size_aligned - size) & !(align - 1);
+        GPUObject::<T, Self::Allocation<T>>::new_boxed(self.alloc_object()?, inner, callback)
+    }
 
-        dev_info!(&self.dev, "Allocator::new: size={:#x} size_al={:#x} al={:#x} off={:#x}", size, size_aligned, align, offset);
+    #[inline(never)]
+    fn new_inplace<T: GPUStruct>(
+        &mut self,
+        inner: T,
+        callback: impl for<'a> FnOnce(&'a T, *mut MaybeUninit<T::Raw<'a>>) -> Result<&'a mut T::Raw<'a>>,
+    ) -> Result<GPUObject<T, Self::Allocation<T>>> {
+        GPUObject::<T, Self::Allocation<T>>::new_inplace(self.alloc_object()?, inner, callback)
+    }
 
-        let mut obj = crate::gem::new_object(&self.dev, size_aligned)?;
-        let p = obj.vmap()?.as_mut_ptr() as *mut u8;
-        let map = obj.map_into(&self.context)?;
-
-        let ptr = unsafe { p.add(offset) } as *mut T;
-        let gpu_ptr = (map.iova() + offset) as u64;
-
-        dev_info!(&self.dev, "Allocator::new -> {:#?} / {:#?} | {:#x} / {:#x}",
-        p, ptr, map.iova(), gpu_ptr);
-
-        let alloc = SimpleAllocation {
-            dev: self.dev.clone(),
-            ptr,
-            gpu_ptr,
-            size,
-            context: self.context.clone(),
-            obj,
-        };
-
-        GPUObject::<T, Self::Allocation<T>>::new_boxed(alloc, inner, callback)
+    #[inline(never)]
+    fn new_default<T: GPUStruct + Default>(&mut self) -> Result<GPUObject<T, Self::Allocation<T>>>
+    where
+        for<'a> <T as GPUStruct>::Raw<'a>: Default,
+    {
+        GPUObject::<T, Self::Allocation<T>>::new_default(self.alloc_object()?)
     }
 
     fn array_empty<T: Sized + Default>(
         &mut self,
-        count: usize
+        count: usize,
     ) -> Result<GPUArray<T, Self::Allocation<T>>> {
         let size = mem::size_of::<T>() * count;
         let size_aligned = (size + crate::mmu::UAT_PGSZ - 1) & !crate::mmu::UAT_PGMSK;
         let align = self.min_align.max(mem::align_of::<T>());
         let offset = (size_aligned - size) & !(align - 1);
 
-        dev_info!(&self.dev, "Allocator::array_empty: size={:#x} size_al={:#x} al={:#x} off={:#x} ({:#x} * {:#x})", size, size_aligned, align, offset,
-        mem::size_of::<T>(), count);
+        dev_info!(
+            &self.dev,
+            "Allocator::array_empty: size={:#x} size_al={:#x} al={:#x} off={:#x} ({:#x} * {:#x})",
+            size,
+            size_aligned,
+            align,
+            offset,
+            mem::size_of::<T>(),
+            count
+        );
 
         let mut obj = crate::gem::new_object(&self.dev, size_aligned)?;
         let p = obj.vmap()?.as_mut_ptr() as *mut u8;
@@ -192,8 +221,14 @@ impl Allocator for SimpleAllocator {
         let map = obj.map_into(&self.context)?;
         let gpu_ptr = (map.iova() + offset) as u64;
 
-        dev_info!(&self.dev, "Allocator::array_empty -> {:#?} / {:#?} | {:#x} / {:#x}",
-        p, ptr, map.iova(), gpu_ptr);
+        dev_info!(
+            &self.dev,
+            "Allocator::array_empty -> {:#?} / {:#?} | {:#x} / {:#x}",
+            p,
+            ptr,
+            map.iova(),
+            gpu_ptr
+        );
 
         let alloc = SimpleAllocation {
             dev: self.dev.clone(),
