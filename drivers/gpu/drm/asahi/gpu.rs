@@ -9,7 +9,7 @@ use kernel::{
     macros::versions,
     prelude::*,
     soc::apple::rtkit,
-    sync::{smutex::Mutex, Ref, UniqueRef},
+    sync::{smutex::Mutex, Guard, Ref, UniqueRef},
     PointerWrapper,
 };
 
@@ -60,7 +60,7 @@ pub(crate) struct GPUManager {
     initialized: bool,
     initdata: fw::types::GPUObject<fw::initdata::InitData::ver>,
     uat: mmu::UAT,
-    alloc: KernelAllocators,
+    alloc: Mutex<KernelAllocators>,
     io_mappings: Vec<mmu::Mapping>,
     rtkit: Mutex<Option<rtkit::RTKit<GPUManager::ver>>>,
     rx_channels: Mutex<RXChannels::ver>,
@@ -70,7 +70,6 @@ pub(crate) struct GPUManager {
 
 pub(crate) trait GPUManager: Send + Sync {
     fn init(&self) -> Result;
-    fn alloc(&mut self) -> &mut KernelAllocators;
 }
 
 #[versions(AGX)]
@@ -160,7 +159,7 @@ impl GPUManager::ver {
                 device_control: channel::DeviceControlChannel::new(&mut alloc)?,
             }),
             pipes,
-            alloc,
+            alloc: Mutex::new(alloc),
         })?;
 
         {
@@ -236,6 +235,10 @@ impl GPUManager::ver {
         self.io_mappings.try_push(mapping)?;
         Ok(())
     }
+
+    fn alloc(&self) -> Guard<'_, Mutex<KernelAllocators>> {
+        self.alloc.lock()
+    }
 }
 
 #[versions(AGX)]
@@ -254,13 +257,9 @@ impl GPUManager for GPUManager::ver {
             .lock()
             .device_control
             .send(&DeviceControlMsg::Initialize);
-
         Ok(())
     }
 
-    fn alloc(&mut self) -> &mut KernelAllocators {
-        &mut self.alloc
-    }
 }
 
 #[versions(AGX)]
