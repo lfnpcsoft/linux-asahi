@@ -4,21 +4,11 @@
 //! Driver for the Apple AGX GPUs found in Apple Silicon SoCs.
 
 use kernel::{
-    c_str,
-    device,
-    drm,
-    drm::drv,
-    error::Result,
-    io_mem::IoMem,
-    module_platform_driver, of, platform,
-    prelude::*,
-    soc::apple::rtkit,
-    sync::Ref,
-    sync::smutex::Mutex,
-    PointerWrapper,
+    c_str, device, drm, drm::drv, error::Result, io_mem::IoMem, of,
+    platform, prelude::*, sync::Ref,
 };
 
-use crate::{initdata, alloc, mmu, fw, gem};
+use crate::{gem, gpu, hw, mmu};
 
 use kernel::macros::vtable;
 
@@ -37,9 +27,7 @@ const INFO: drv::DriverInfo = drv::DriverInfo {
 
 pub(crate) struct AsahiData {
     dev: device::Device,
-    uat: crate::mmu::UAT,
-    rtkit: Mutex<Option<rtkit::RTKit<AsahiDevice>>>,
-    initdata: Mutex<fw::types::GPUObject<fw::initdata::InitDataG13GV13_0b4>>,
+    gpu: Ref<dyn gpu::GPUManager>,
 }
 
 pub(crate) struct AsahiResources {
@@ -61,27 +49,6 @@ impl AsahiDevice {
 }
 
 #[vtable]
-impl rtkit::Operations for AsahiDevice {
-    type Data = Ref<DeviceData>;
-    type Buffer = gem::ObjectRef;
-
-    fn shmem_alloc(
-        data: <Self::Data as PointerWrapper>::Borrowed<'_>,
-        size: usize,
-    ) -> Result<Self::Buffer> {
-        let mut guard = data.registrations().ok_or(ENXIO)?;
-        let reg = guard.as_pinned_mut();
-        let dev = reg.device();
-        dev_info!(dev, "shmem_alloc() {:#x} bytes\n", size);
-
-        let mut obj = gem::new_object(dev, size)?;
-        obj.vmap()?;
-        let map = obj.map_into(data.uat.kernel_context())?;
-        dev_info!(dev, "shmem_alloc() -> VA {:#x}\n", map.iova());
-        Ok(obj)
-    }}
-
-#[vtable]
 impl drv::Driver for AsahiDevice {
     type Data = ();
     type Object = gem::Object;
@@ -97,7 +64,10 @@ impl platform::Driver for AsahiDevice {
         (of::DeviceId::Compatible(b"apple,agx-t8103"), None),
     ]}
 
-    fn probe(pdev: &mut platform::Device, _id_info: Option<&Self::IdInfo>) -> Result<Ref<DeviceData>> {
+    fn probe(
+        pdev: &mut platform::Device,
+        _id_info: Option<&Self::IdInfo>,
+    ) -> Result<Ref<DeviceData>> {
         let dev = device::Device::from_dev(pdev);
 
         dev_info!(dev, "Probing!\n");
@@ -110,51 +80,30 @@ impl platform::Driver for AsahiDevice {
 
         let mut res = AsahiResources {
             // SAFETY: This device does DMA via the UAT IOMMU.
-            asc: asc_res
+            asc: asc_res,
         };
 
         // Start the coprocessor CPU, so UAT can initialize the handoff
         AsahiDevice::start_cpu(&mut res)?;
 
-        let uat = mmu::UAT::new(&dev)?;
         let reg = drm::drv::Registration::<AsahiDevice>::new(&dev)?;
-
-        let mut allocator = alloc::SimpleAllocator::new(reg.device(), uat.kernel_context(),
-        0x20);
-        let mut builder = initdata::InitDataBuilderG13GV13_0b4::new(&mut allocator);
-        let initdata = builder.build(&initdata::HWCONFIG_T8103)?;
+        let gpu = gpu::GPUManagerG13GV13_0b4::new(&reg.device(), &hw::t8103::HWCONFIG)?;
 
         let data = kernel::new_device_data!(
             reg,
             res,
             AsahiData {
-                uat,
                 dev,
-                rtkit: Mutex::new(None),
-                initdata: Mutex::new(initdata),
+                gpu,
             },
             "Asahi::Registrations"
         )?;
 
         let data = Ref::<DeviceData>::from(data);
 
-        {
-            let mut guard = data.registrations().ok_or(ENXIO)?;
-            let reg = guard.as_pinned_mut();
-            let dev = reg.device();
-            dev_info!(dev, "info through dev\n");
-        }
+        data.gpu.init()?;
 
-        let mut rtkit = unsafe { rtkit::RTKit::<AsahiDevice>::new(&data.dev, None, 0, data.clone()) }?;
-
-        rtkit.boot()?;
-        *data.rtkit.lock() = Some(rtkit);
-
-        kernel::drm_device_register!(
-            data.registrations().ok_or(ENXIO)?.as_pinned_mut(),
-            (),
-            0
-        )?;
+        kernel::drm_device_register!(data.registrations().ok_or(ENXIO)?.as_pinned_mut(), (), 0)?;
 
         dev_info!(data.dev, "probed!\n");
         Ok(data)

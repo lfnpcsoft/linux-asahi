@@ -1145,7 +1145,6 @@ pub(crate) struct GlobalChannels {
     pub(crate) event: ChannelRing<channels::ChannelState, channels::EventMsg>,
     pub(crate) fw_log: ChannelRing<channels::FWLogChannelState, channels::FWLogMsg>,
     pub(crate) ktrace: ChannelRing<channels::ChannelState, channels::KTraceMsg>,
-    pub(crate) stats: ChannelRing<channels::ChannelState, channels::StatsMsg>,
 }
 
 #[versions(AGX)]
@@ -1161,9 +1160,9 @@ pub(crate) struct Stats {
 pub(crate) struct RuntimePointers {
     pub(crate) pipes: [Box<PipeChannels>; 4],
 
-    pub(crate) channels: Box<GlobalChannels>,
+    pub(crate) channels: GlobalChannels,
 
-    pub(crate) stats: Box<Stats::ver>,
+    pub(crate) stats: Stats::ver,
 
     pub(crate) hwdata_a: GPUObject<HWDataA::ver>,
     pub(crate) unkptr_190: GPUArray<u8>,
