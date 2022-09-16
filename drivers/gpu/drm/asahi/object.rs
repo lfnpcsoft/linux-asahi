@@ -9,7 +9,7 @@ use kernel::macros::versions;
 
 use kernel::{error::code::*, prelude::*};
 
-use alloc::{fmt, boxed::Box};
+use alloc::{boxed::Box, fmt};
 use core::fmt::Debug;
 use core::fmt::Error;
 use core::fmt::Formatter;
@@ -72,7 +72,7 @@ pub(crate) trait GPUStruct: 'static {
 
 pub(crate) struct GPUObject<T: GPUStruct, U: Allocation<T>> {
     raw: *mut T::Raw<'static>,
-    alloc: Box<U>,
+    alloc: U,
     gpu_ptr: GPUWeakPointer<T>,
     inner: Box<T>,
 }
@@ -112,7 +112,7 @@ impl<T: GPUStruct, U: Allocation<T>> GPUObject<T, U> {
         Ok(Self {
             raw: p,
             gpu_ptr,
-            alloc: Box::try_new(alloc)?,
+            alloc,
             inner: Box::try_new(inner)?,
         })
     }
@@ -120,7 +120,7 @@ impl<T: GPUStruct, U: Allocation<T>> GPUObject<T, U> {
     pub(crate) fn new_boxed(
         alloc: U,
         inner: Box<T>,
-        callback: impl for<'a> FnOnce(&'a T) -> Result<Box<T::Raw<'a>>>,
+        callback: impl for<'a> FnOnce(&'a T, *mut MaybeUninit<T::Raw<'a>>) -> Result<&'a mut T::Raw<'a>>,
     ) -> Result<Self> {
         if alloc.size() < mem::size_of::<T::Raw<'static>>() {
             return Err(ENOMEM);
@@ -133,25 +133,36 @@ impl<T: GPUStruct, U: Allocation<T>> GPUObject<T, U> {
             core::any::type_name::<T>(),
             alloc.gpu_ptr()
         );
-        let p = alloc.ptr() as *mut T::Raw<'static>;
-        let raw = Box::into_raw(callback(&*inner)?);
-        unsafe {
-            p.copy_from(raw as *mut u8 as *mut _, 1);
-            alloc::alloc::dealloc(raw as *mut u8, core::alloc::Layout::new::<T::Raw<'static>>());
+        let p = alloc.ptr() as *mut MaybeUninit<T::Raw<'_>>;
+        let raw = callback(&inner, p)? as *mut _ as *mut MaybeUninit<T::Raw<'_>>;
+        if p != raw {
+            dev_err!(
+                alloc.device(),
+                "Allocation callback returned a mismatched reference ({})",
+                core::any::type_name::<T>(),
+            );
+            return Err(EINVAL);
         }
-        mem::forget(raw);
         Ok(Self {
-            raw: p,
+            raw: p as *mut u8 as *mut T::Raw<'static>,
             gpu_ptr,
-            alloc: Box::try_new(alloc)?,
+            alloc,
             inner,
         })
     }
 
+    pub(crate) fn new_inplace(
+        alloc: U,
+        inner: T,
+        callback: impl for<'a> FnOnce(&'a T, *mut MaybeUninit<T::Raw<'a>>) -> Result<&'a mut T::Raw<'a>>,
+    ) -> Result<Self> {
+        GPUObject::<T, U>::new_boxed(alloc, Box::try_new(inner)?, callback)
+    }
+
     pub(crate) fn new_prealloc(
         alloc: U,
-        inner_cb: impl FnOnce(&GPUWeakPointer<T>) -> Box<T>,
-        raw_cb: impl for<'a> FnOnce(&'a T) -> T::Raw<'a>,
+        inner_cb: impl FnOnce(&GPUWeakPointer<T>) -> Result<Box<T>>,
+        raw_cb: impl for<'a> FnOnce(&'a T, *mut MaybeUninit<T::Raw<'a>>) -> Result<&'a mut T::Raw<'a>>,
     ) -> Result<Self> {
         if alloc.size() < mem::size_of::<T::Raw<'static>>() {
             return Err(ENOMEM);
@@ -164,17 +175,21 @@ impl<T: GPUStruct, U: Allocation<T>> GPUObject<T, U> {
             core::any::type_name::<T>(),
             alloc.gpu_ptr()
         );
-        let inner = inner_cb(&gpu_ptr);
-        let p = alloc.ptr() as *mut T::Raw<'static>;
-        let mut raw = raw_cb(&*inner);
-        unsafe {
-            p.copy_from(&mut raw as *mut _ as *mut u8 as *mut _, 1);
+        let inner = inner_cb(&gpu_ptr)?;
+        let p = alloc.ptr() as *mut MaybeUninit<T::Raw<'_>>;
+        let raw = raw_cb(&*inner, p)? as *mut _ as *mut MaybeUninit<T::Raw<'_>>;
+        if p != raw {
+            dev_err!(
+                alloc.device(),
+                "Allocation callback returned a mismatched reference ({})",
+                core::any::type_name::<T>(),
+            );
+            return Err(EINVAL);
         }
-        mem::forget(raw);
         Ok(Self {
-            raw: p,
+            raw: p as *mut u8 as *mut T::Raw<'static>,
             gpu_ptr,
-            alloc: Box::try_new(alloc)?,
+            alloc,
             inner,
         })
     }
@@ -202,19 +217,51 @@ impl<T: GPUStruct, U: Allocation<T>> GPUObject<T, U> {
     }
 }
 
-impl<'a, T: GPUStruct + Debug, U: Allocation<T>> Debug for GPUObject<T, U> where <T as GPUStruct>::Raw<'static>: Debug {
+impl<'a, T: GPUStruct, U: Allocation<T>> Deref for GPUObject<T, U> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &*self.inner
+    }
+}
+
+impl<'a, T: GPUStruct, U: Allocation<T>> DerefMut for GPUObject<T, U> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut *self.inner
+    }
+}
+
+impl<'a, T: GPUStruct + Debug, U: Allocation<T>> Debug for GPUObject<T, U>
+where
+    <T as GPUStruct>::Raw<'static>: Debug,
+{
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct(core::any::type_name::<T>())
             .field("raw", &format_args!("{:#X?}", unsafe { &*self.raw }))
             .field("inner", &format_args!("{:#X?}", &self.inner))
+            .field("alloc", &format_args!("{:?}", &self.alloc))
             .finish()
+    }
+}
+
+impl<T: GPUStruct + Default, U: Allocation<T>> GPUObject<T, U>
+where
+    for<'a> <T as GPUStruct>::Raw<'a>: Default,
+{
+    pub(crate) fn new_default(alloc: U) -> Result<Self> {
+        GPUObject::<T, U>::new_inplace(alloc, Default::default(), |_inner, raw| {
+            Ok(unsafe {
+                ptr::write_bytes(raw, 0, 1);
+                (*raw).assume_init_mut()
+            })
+        })
     }
 }
 
 pub(crate) struct GPUArray<T: Sized, U: Allocation<T>> {
     raw: *mut T,
     len: usize,
-    alloc: Box<U>,
+    alloc: U,
     gpu_ptr: NonZeroU64,
 }
 
@@ -232,7 +279,7 @@ impl<T: Sized + Copy, U: Allocation<T>> GPUArray<T, U> {
         Ok(Self {
             raw: p,
             len: data.len(),
-            alloc: Box::try_new(alloc)?,
+            alloc,
             gpu_ptr,
         })
     }
@@ -263,7 +310,7 @@ impl<T: Sized + Default, U: Allocation<T>> GPUArray<T, U> {
         Ok(Self {
             raw: p,
             len: count,
-            alloc: Box::try_new(alloc)?,
+            alloc,
             gpu_ptr,
         })
     }
