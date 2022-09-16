@@ -804,10 +804,10 @@ pub(crate) mod raw {
         pub(crate) pipes: Array<4, PipeChannels>,
 
         pub(crate) dev_ctrl: ChannelRing<channels::ChannelState, channels::DeviceControlMsg>,
-        pub(crate) event: ChannelRing<channels::ChannelState, channels::EventMsg>,
-        pub(crate) fw_log: ChannelRing<channels::FWLogChannelState, channels::FWLogMsg>,
-        pub(crate) ktrace: ChannelRing<channels::ChannelState, channels::KTraceMsg>,
-        pub(crate) stats: ChannelRing<channels::ChannelState, channels::StatsMsg>,
+        pub(crate) event: ChannelRing<channels::ChannelState, channels::RawEventMsg>,
+        pub(crate) fw_log: ChannelRing<channels::FWLogChannelState, channels::RawFWLogMsg>,
+        pub(crate) ktrace: ChannelRing<channels::ChannelState, channels::RawKTraceMsg>,
+        pub(crate) stats: ChannelRing<channels::ChannelState, channels::RawStatsMsg>,
 
         pub(crate) __pad0: Pad<0x50>,
         pub(crate) unk_160: u64,
@@ -820,7 +820,7 @@ pub(crate) mod raw {
         pub(crate) unkptr_198: GPUPointer<'a, &'a [u8]>,
         pub(crate) hwdata_b: GPUPointer<'a, super::HWDataB::ver>,
         pub(crate) hwdata_b_2: GPUPointer<'a, super::HWDataB::ver>,
-        pub(crate) fwlog_ring2: GPUPointer<'a, &'a [channels::FWLogMsg]>,
+        pub(crate) fwlog_ring2: GPUPointer<'a, &'a [channels::RawFWLogMsg]>,
         pub(crate) unkptr_1b8: GPUPointer<'a, &'a [u8]>,
         pub(crate) unkptr_1c0: GPUPointer<'a, &'a [u8]>,
         pub(crate) unkptr_1c8: GPUPointer<'a, &'a [u8]>,
@@ -1142,9 +1142,6 @@ pub(crate) struct PipeChannels {
 #[derive(Debug)]
 pub(crate) struct GlobalChannels {
     pub(crate) dev_ctrl: ChannelRing<channels::ChannelState, channels::DeviceControlMsg>,
-    pub(crate) event: ChannelRing<channels::ChannelState, channels::EventMsg>,
-    pub(crate) fw_log: ChannelRing<channels::FWLogChannelState, channels::FWLogMsg>,
-    pub(crate) ktrace: ChannelRing<channels::ChannelState, channels::KTraceMsg>,
 }
 
 #[versions(AGX)]
@@ -1169,7 +1166,7 @@ pub(crate) struct RuntimePointers {
     pub(crate) unkptr_198: GPUArray<u8>,
     pub(crate) hwdata_b: GPUObject<HWDataB::ver>,
 
-    pub(crate) fwlog_ring2: GPUArray<channels::FWLogMsg>,
+    pub(crate) fwlog_ring2: GPUArray<channels::RawFWLogMsg>,
 
     pub(crate) unkptr_1b8: GPUArray<u8>,
     pub(crate) unkptr_1c0: GPUArray<u8>,
