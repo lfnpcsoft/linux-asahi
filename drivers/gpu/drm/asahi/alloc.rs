@@ -15,8 +15,9 @@ use crate::object::{GPUObject, GPUStruct, GPUArray};
 
 use alloc::fmt;
 use core::mem;
+use core::fmt::{Debug, Formatter};
 
-pub(crate) trait Allocation<T> {
+pub(crate) trait Allocation<T>: Debug {
     fn ptr(&self) -> *mut T;
     fn gpu_ptr(&self) -> u64;
     fn size(&self) -> usize;
@@ -56,6 +57,16 @@ pub(crate) struct SimpleAllocation<T> {
     obj: crate::gem::ObjectRef,
 }
 
+impl<T> Debug for SimpleAllocation<T>
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct(core::any::type_name::<SimpleAllocation<T>>())
+            .field("ptr", &format_args!("{:p}", self.ptr))
+            .field("gpu_ptr", &format_args!("{:#X?}", self.gpu_ptr))
+            .field("size", &format_args!("{:#X?}", self.size))
+            .finish()
+    }
+}
 impl<T> Allocation<T> for SimpleAllocation<T> {
     fn ptr(&self) -> *mut T {
         self.ptr
