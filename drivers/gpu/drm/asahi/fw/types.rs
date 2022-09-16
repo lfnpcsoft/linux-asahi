@@ -7,12 +7,14 @@
 use crate::{alloc, object};
 pub(crate) use kernel::macros::versions;
 
-pub(crate) use crate::object::{GPUPointer, GPUWeakPointer, GPUStruct};
+pub(crate) use crate::object::{GPUPointer, GPUStruct, GPUWeakPointer};
 pub(crate) use ::alloc::boxed::Box;
 use core::fmt;
 use core::ops::{Deref, DerefMut, Index, IndexMut};
 use core::sync::atomic;
-pub(crate) use core::sync::atomic::{AtomicU16, AtomicU32, AtomicU64, AtomicU8};
+pub(crate) use core::sync::atomic::{
+    AtomicI16, AtomicI32, AtomicI64, AtomicI8, AtomicU16, AtomicU32, AtomicU64, AtomicU8,
+};
 pub(crate) type GPUObject<T> = object::GPUObject<T, alloc::SimpleAllocation<T>>;
 pub(crate) type GPUArray<T> = object::GPUArray<T, alloc::SimpleAllocation<T>>;
 pub(crate) use crate::alloc::Allocator as _Allocator;
