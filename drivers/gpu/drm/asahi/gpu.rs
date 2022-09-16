@@ -227,7 +227,7 @@ impl GPUManager::ver {
             raw.io_mappings[index] = fw::initdata::raw::IOMapping {
                 phys_addr: map.base as u64,
                 virt_addr: (mapping.iova() + off) as u64,
-                size: mapping.size() as u32,
+                size: map.size as u32,
                 range_size: map.range_size as u32,
                 readwrite: map.writable as u64,
             };
