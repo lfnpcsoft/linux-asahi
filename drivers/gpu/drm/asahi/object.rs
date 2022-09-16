@@ -66,7 +66,7 @@ pub(crate) struct GPURawPointer(NonZeroU64);
 #[macro_export]
 macro_rules! inner_ptr {
     ($gpuva:expr, $($f:tt)*) => ({
-        fn uninit_from<T: GPUStruct>(_: &GPUWeakPointer<T>) -> MaybeUninit<T::Raw<'static>> {
+        fn uninit_from<T: GPUStruct>(_: &GPUWeakPointer<T>) -> core::mem::MaybeUninit<T::Raw<'static>> {
             core::mem::MaybeUninit::uninit()
         }
         let tmp = uninit_from($gpuva);
