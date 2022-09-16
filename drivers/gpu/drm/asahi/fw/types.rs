@@ -48,6 +48,33 @@ macro_rules! no_debug {
     };
 }
 
+// See: https://github.com/rust-lang/rfcs/issues/2626
+pub(crate) unsafe trait Zeroed: Default {
+    fn zeroed() -> Self {
+        unsafe { core::mem::zeroed() }
+    }
+}
+
+#[macro_export]
+macro_rules! default_zeroed {
+    (<$($lt:lifetime),*>, $type:ty) => {
+        impl<$($lt),*> Default for $type {
+            fn default() -> $type {
+                Zeroed::zeroed()
+            }
+        }
+        unsafe impl<$($lt),*> Zeroed for $type {}
+    };
+    ($type:ty) => {
+        impl Default for $type {
+            fn default() -> $type {
+                Zeroed::zeroed()
+            }
+        }
+        unsafe impl Zeroed for $type {}
+    };
+}
+
 #[derive(Copy, Clone)]
 #[repr(C, packed)]
 pub(crate) struct Pad<const N: usize>([u8; N]);
