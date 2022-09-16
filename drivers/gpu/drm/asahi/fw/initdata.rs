@@ -10,19 +10,19 @@ use super::types::*;
 pub(crate) mod raw {
     use super::*;
 
-    #[derive(Debug)]
+    #[derive(Debug, Default)]
     #[repr(C)]
-    pub(crate) struct ChannelRing<'a, T: GPUStruct + Debug + Default, U: Copy> {
-        pub(crate) state: GPUPointer<'a, T>,
-        pub(crate) ring: GPUPointer<'a, &'a [U]>,
+    pub(crate) struct ChannelRing<T: GPUStruct + Debug + Default, U: Copy> {
+        pub(crate) state: Option<GPUWeakPointer<T>>,
+        pub(crate) ring: Option<GPUWeakPointer<[U]>>,
     }
 
     #[derive(Debug)]
     #[repr(C)]
-    pub(crate) struct PipeChannels<'a> {
-        pub(crate) vtx: ChannelRing<'a, channels::ChannelState, channels::RunCmdQueueMsg>,
-        pub(crate) frag: ChannelRing<'a, channels::ChannelState, channels::RunCmdQueueMsg>,
-        pub(crate) comp: ChannelRing<'a, channels::ChannelState, channels::RunCmdQueueMsg>,
+    pub(crate) struct PipeChannels {
+        pub(crate) vtx: ChannelRing<channels::ChannelState, channels::RunCmdQueueMsg>,
+        pub(crate) frag: ChannelRing<channels::ChannelState, channels::RunCmdQueueMsg>,
+        pub(crate) comp: ChannelRing<channels::ChannelState, channels::RunCmdQueueMsg>,
     }
 
     #[derive(Debug, Default)]
@@ -46,8 +46,8 @@ pub(crate) mod raw {
 
     #[derive(Debug)]
     #[repr(C)]
-    pub(crate) struct FWStatus<'a> {
-        pub(crate) fwctl_channel: ChannelRing<'a, channels::FWCtlChannelState, channels::FWCtlMsg>,
+    pub(crate) struct FWStatus {
+        pub(crate) fwctl_channel: ChannelRing<channels::FWCtlChannelState, channels::FWCtlMsg>,
         pub(crate) flags: FWStatusFlags,
     }
 
@@ -802,13 +802,13 @@ pub(crate) mod raw {
     #[versions(AGX)]
     #[repr(C, packed)]
     pub(crate) struct RuntimePointers<'a> {
-        pub(crate) pipes: Array<4, PipeChannels<'a>>,
+        pub(crate) pipes: Array<4, PipeChannels>,
 
-        pub(crate) dev_ctrl: ChannelRing<'a, channels::ChannelState, channels::DeviceControlMsg>,
-        pub(crate) event: ChannelRing<'a, channels::ChannelState, channels::EventMsg>,
-        pub(crate) fw_log: ChannelRing<'a, channels::FWLogChannelState, channels::FWLogMsg>,
-        pub(crate) ktrace: ChannelRing<'a, channels::ChannelState, channels::KTraceMsg>,
-        pub(crate) stats: ChannelRing<'a, channels::ChannelState, channels::StatsMsg>,
+        pub(crate) dev_ctrl: ChannelRing<channels::ChannelState, channels::DeviceControlMsg>,
+        pub(crate) event: ChannelRing<channels::ChannelState, channels::EventMsg>,
+        pub(crate) fw_log: ChannelRing<channels::FWLogChannelState, channels::FWLogMsg>,
+        pub(crate) ktrace: ChannelRing<channels::ChannelState, channels::KTraceMsg>,
+        pub(crate) stats: ChannelRing<channels::ChannelState, channels::StatsMsg>,
 
         pub(crate) __pad0: Pad<0x50>,
         pub(crate) unk_160: u64,
@@ -1071,19 +1071,19 @@ pub(crate) mod raw {
 
 #[derive(Debug)]
 pub(crate) struct ChannelRing<T: GPUStruct + Debug + Default, U: Copy> where
-for<'b> <T as GPUStruct>::Raw<'b>: Debug,
+for<'a> <T as GPUStruct>::Raw<'a>: Debug,
 {
     pub(crate) state: GPUObject<T>,
     pub(crate) ring: GPUArray<U>,
 }
 
 impl<T: GPUStruct + Debug + Default, U: Copy> ChannelRing<T, U>
-where for<'b> <T as GPUStruct>::Raw<'b>: Debug
+where for<'a> <T as GPUStruct>::Raw<'a>: Debug
 {
-    pub(crate) fn to_raw(&self) -> raw::ChannelRing<'_, T, U> {
+    pub(crate) fn to_raw(&self) -> raw::ChannelRing<T, U> {
         raw::ChannelRing {
-            state: self.state.gpu_pointer(),
-            ring: self.ring.gpu_pointer(),
+            state: Some(self.state.weak_pointer()),
+            ring: Some(self.ring.weak_pointer()),
         }
     }
 }
@@ -1094,7 +1094,7 @@ pub(crate) struct FWStatus {
 }
 
 impl GPUStruct for FWStatus {
-    type Raw<'a> = raw::FWStatus<'a>;
+    type Raw<'a> = raw::FWStatus;
 }
 
 #[versions(AGX)]
