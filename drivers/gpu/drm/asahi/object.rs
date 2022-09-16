@@ -22,20 +22,21 @@ use core::{mem, ptr, slice};
 
 use crate::alloc::Allocation;
 
-#[repr(transparent)]
+#[repr(C, packed(4))]
 pub(crate) struct GPUPointer<'a, T: ?Sized>(NonZeroU64, PhantomData<&'a T>);
 
 impl<'a, T> fmt::Debug for GPUPointer<'a, T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let val = self.0;
         f.write_fmt(format_args!(
             "{:#x} ({})",
-            self.0,
+            val,
             core::any::type_name::<T>()
         ))
     }
 }
 
-#[repr(transparent)]
+#[repr(C, packed(4))]
 pub(crate) struct GPUWeakPointer<T: ?Sized>(NonZeroU64, PhantomData<*const T>);
 
 impl<T: ?Sized> GPUWeakPointer<T> {
@@ -50,9 +51,10 @@ impl<T: ?Sized> GPUWeakPointer<T> {
 
 impl<T: ?Sized> fmt::Debug for GPUWeakPointer<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let val = self.0;
         f.write_fmt(format_args!(
             "{:#x} ({})",
-            self.0,
+            val,
             core::any::type_name::<T>()
         ))
     }
