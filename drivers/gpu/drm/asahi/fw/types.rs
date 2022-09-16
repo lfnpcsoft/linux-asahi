@@ -7,7 +7,7 @@
 use crate::{alloc, object};
 pub(crate) use kernel::macros::versions;
 
-pub(crate) use crate::object::{GPUPointer, GPUStruct};
+pub(crate) use crate::object::{GPUPointer, GPUWeakPointer, GPUStruct};
 pub(crate) use ::alloc::boxed::Box;
 use core::fmt;
 use core::ops::{Deref, DerefMut, Index, IndexMut};
