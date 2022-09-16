@@ -139,7 +139,7 @@ pub(crate) mod raw {
         pub(crate) unk_0: u32,
         pub(crate) unk_4: u32,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_8_0: u32,
 
         pub(crate) unk_8: u32,
@@ -156,7 +156,7 @@ pub(crate) mod raw {
         pub(crate) cur_pstate: u32,
         pub(crate) unk_38: u32,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_3c_0: u32,
 
         pub(crate) unk_3c: u32,
@@ -167,7 +167,7 @@ pub(crate) mod raw {
         pub(crate) freq_mhz: F32,
         pub(crate) unk_54: Array<0x20, u8>,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_74_0: u32,
 
         pub(crate) unk_74: Array<0x10, F32>,
@@ -202,7 +202,7 @@ pub(crate) mod raw {
         pub(crate) pad_69c: Pad<0x18>,
         pub(crate) unk_6b4: u32,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_6b8_0: Array<0x10, u8>,
 
         pub(crate) unk_6b8: u32,
@@ -232,16 +232,16 @@ pub(crate) mod raw {
         pub(crate) unk_728: u32,
         pub(crate) unk_72c: u32,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_730_0: u32,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_730_4: u32,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_730_8: u32,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_730_c: u32,
 
         pub(crate) unk_730: F32,
@@ -281,7 +281,7 @@ pub(crate) mod raw {
         pub(crate) pad_7c4: Pad<0x18>,
         pub(crate) unk_7dc: u32,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_7e0_0: Array<0x10, u8>,
 
         pub(crate) unk_7e0: u32,
@@ -332,7 +332,7 @@ pub(crate) mod raw {
         pub(crate) unk_8cc: u32,
         pub(crate) pad_8d0: Pad<0x14>,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_8e4_0: Array<0x10, u8>,
 
         pub(crate) unk_8e4: u32,
@@ -363,10 +363,10 @@ pub(crate) mod raw {
         pub(crate) unk_c50: u32,
         pub(crate) unk_c54: u32,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_c58_0: u32,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_c58_4: u32,
 
         pub(crate) unk_c58: F32,
@@ -375,10 +375,10 @@ pub(crate) mod raw {
         pub(crate) unk_c64: u32,
         pub(crate) unk_c68: u32,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_c6c_0: u32,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_c6c_4: u32,
 
         pub(crate) unk_c6c: F32,
@@ -392,7 +392,7 @@ pub(crate) mod raw {
         pub(crate) unk_c8c: u32,
         pub(crate) unk_c90: Array<0x60, u8>,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_cf0_0: Array<0x20, u8>,
 
         pub(crate) unk_cf0: u32,
@@ -421,10 +421,10 @@ pub(crate) mod raw {
         pub(crate) unk_d4c: u32,
         pub(crate) unk_d50: u32,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_d54_0: u32,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_d54_4: Array<0xc, u8>,
 
         pub(crate) unk_d54: Array<0x10, u8>,
@@ -449,21 +449,21 @@ pub(crate) mod raw {
         pub(crate) unk_dcc: u32,
         pub(crate) unk_dd0: Array<0x40, u8>,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_e10_0: HWDataA130Extra,
 
         pub(crate) unk_e10: Array<0x20, u8>,
         pub(crate) pad_e30: Pad<0x7e0>,
         pub(crate) unk_1610: Array<0x28, u8>,
 
-        #[ver(V < V13_0b4)]
+        #[ver(V < V13_0B4)]
         pub(crate) unk_1638: Array<0x8, u8>,
 
         pub(crate) unk_1640: Array<0x2000, u8>,
         pub(crate) unk_3640: u32,
         pub(crate) hws1: HWDataShared1,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_pad1: Pad<0x20>,
 
         pub(crate) hws2: HWDataShared2,
@@ -478,13 +478,13 @@ pub(crate) mod raw {
         pub(crate) unk_3cd0: u64,
         pub(crate) unk_3cd8: u64,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_3ce0_0: u32,
 
         pub(crate) unk_3ce0: Array<0x40, u8>,
         pub(crate) unk_3d20: Array<0x4c, u8>,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_3d6c: Array<0x38, u8>,
     }
 
@@ -506,12 +506,12 @@ pub(crate) mod raw {
     #[repr(C)]
     pub(crate) struct HWDataB {
 
-        #[ver(V < V13_0b4)]
+        #[ver(V < V13_0B4)]
         pub(crate) unk_0: u64,
 
         pub(crate) unk_8: u64,
 
-        #[ver(V < V13_0b4)]
+        #[ver(V < V13_0B4)]
         pub(crate) unk_10: u64,
 
         pub(crate) unk_18: u64,
@@ -521,16 +521,16 @@ pub(crate) mod raw {
         pub(crate) unkptr_38: u64,
         pub(crate) pad_40: Pad<0x20>,
 
-        #[ver(V < V13_0b4)]
+        #[ver(V < V13_0B4)]
         pub(crate) yuv_matrices: Array<0xf, Array<3, Array<4, i16>>>,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) yuv_matrices: Array<0x3f, Array<3, Array<4, i16>>>,
 
         pub(crate) pad_1c8: Pad<0x8>,
         pub(crate) io_mappings: Array<0x14, IOMapping>,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_450_0: Array<0x68, u8>,
 
         pub(crate) chip_id: u32,
@@ -577,7 +577,7 @@ pub(crate) mod raw {
         pub(crate) unk_4fc: u32,
         pub(crate) unk_500: u32,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_504_0: u32,
 
         pub(crate) unk_504: u32,
@@ -595,7 +595,7 @@ pub(crate) mod raw {
         pub(crate) unk_534: u32,
         pub(crate) unk_538: u32,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_53c_0: u32,
 
         pub(crate) unk_53c: u32,
@@ -611,7 +611,7 @@ pub(crate) mod raw {
         pub(crate) unk_568: u32,
         pub(crate) max_pstate: u32,
 
-        #[ver(V < V13_0b4)]
+        #[ver(V < V13_0B4)]
         pub(crate) num_pstates: u32,
 
         pub(crate) frequencies: Array<0x10, u32>,
@@ -629,19 +629,19 @@ pub(crate) mod raw {
         pub(crate) unk_a8c: u32,
         pub(crate) pad_a90: Pad<0x24>,
 
-        #[ver(V < V13_0b4)]
+        #[ver(V < V13_0B4)]
         pub(crate) min_volt: u32,
 
-        #[ver(V < V13_0b4)]
+        #[ver(V < V13_0B4)]
         pub(crate) unk_ab8: u32,
 
-        #[ver(V < V13_0b4)]
+        #[ver(V < V13_0B4)]
         pub(crate) unk_abc: u32,
 
-        #[ver(V < V13_0b4)]
+        #[ver(V < V13_0B4)]
         pub(crate) unk_ac0: u32,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_ac4_0: Array<0x1f0, u8>,
 
         pub(crate) pad_ac4: Pad<0x8>,
@@ -665,19 +665,19 @@ pub(crate) mod raw {
         pub(crate) unk_b30: u32,
         pub(crate) unk_b34: u32,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_b38_0: u32,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_b38_4: u32,
 
         pub(crate) unk_b38: Array<0xc, u32>,
         pub(crate) unk_b68: u32,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_b6c: Array<0xd0, u8>,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_c3c: u32,
 
     }
@@ -744,7 +744,7 @@ pub(crate) mod raw {
     pub(crate) struct GPUGlobalStatsVtx {
         pub(crate) total_cmds: u32,
         pub(crate) stats: GPUStatsVtx::ver,
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_pad: Array<0x800, u8>,
     }
 
@@ -755,7 +755,7 @@ pub(crate) mod raw {
         pub(crate) total_cmds: u32,
         pub(crate) unk_4: u32,
         pub(crate) stats: GPUStatsFrag::ver,
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_pad: Array<0x800, u8>,
     }
 
@@ -864,7 +864,7 @@ pub(crate) mod raw {
         pub(crate) unk_5e: u32,
         pub(crate) unk_62: u32,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_66_0: Array<0xc, u8>,
 
         pub(crate) unk_66: u32,
@@ -878,12 +878,12 @@ pub(crate) mod raw {
         pub(crate) ktrace_enable: u32,
         pub(crate) unk_4: Array<0x24, u8>,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_28_0: u32,
 
         pub(crate) unk_28: u32,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_2c_0: u32,
 
         pub(crate) unk_2c: u32,
@@ -897,7 +897,7 @@ pub(crate) mod raw {
         pub(crate) unk_1000: Array<0x7000, u8>,
         pub(crate) unk_8000: Array<0x900, u8>,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_8900_0: u32,
 
         pub(crate) unk_8900: u32,
@@ -922,7 +922,7 @@ pub(crate) mod raw {
         pub(crate) unk_894c: u32,
         pub(crate) unk_8950: Array<0x6c, u8>,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_89bc_0: Array<0x3c, u8>,
 
         pub(crate) unk_89bc: u32,
@@ -938,28 +938,28 @@ pub(crate) mod raw {
         pub(crate) unk_89ec: F32,
         pub(crate) unk_89f0: u32,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_89f4_0: Array<0x8, u8>,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_89f4_8: u32,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_89f4_c: Array<0x50, u8>,
 
         pub(crate) hws1: HWDataShared1,
         pub(crate) hws2: HWDataShared2,
         pub(crate) unk_8fac: Array<0x60, u8>,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_900c_0: Array<0x28, u8>,
 
         pub(crate) unk_900c: u32,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_9010_0: u32,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_9010_4: Array<0x14, u8>,
 
         pub(crate) unk_9010: Array<0x2c, u8>,
@@ -978,19 +978,19 @@ pub(crate) mod raw {
         pub(crate) unk_11024: u32,
         pub(crate) unk_11028: u32,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_1102c_0: u32,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_1102c_4: u32,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_1102c_8: u32,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_1102c_c: u32,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_1102c_10: u32,
 
         pub(crate) unk_1102c: u32,
@@ -1003,27 +1003,27 @@ pub(crate) mod raw {
         pub(crate) counter: u32,
         pub(crate) unk_118dc: u32,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_118e0_0: Array<0x9c, u8>,
 
         pub(crate) unk_118e0: u32,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_118e4_0: u32,
 
         pub(crate) unk_118e4: Array<0x1c, u8>,
         pub(crate) unk_11900: Array<0x440, u8>,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_11d40: Array<0x19c, u8>,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_11edc: u32,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_11ee0: Array<0x1c, u8>,
 
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) unk_11efc: u32,
 
     }
@@ -1046,7 +1046,7 @@ pub(crate) mod raw {
     #[derive(Debug)]
     #[repr(C)]
     pub(crate) struct InitData<'a> {
-        #[ver(V >= V13_0b4)]
+        #[ver(V >= V13_0B4)]
         pub(crate) ver_info: Array<0x4, u16>,
 
         pub(crate) unk_buf: GPUPointer<'a, &'a [u8]>,

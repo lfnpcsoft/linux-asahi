@@ -69,7 +69,7 @@ impl<'a> InitDataBuilder::ver<'a> {
                     ptr,
                     raw::HWDataA::ver {
                         unk_4: 192000,
-                        #[ver(V >= V13_0b4)]
+                        #[ver(V >= V13_0B4)]
                         unk_8_0: 192000,
                         pwr_status: 4,
                         unk_10: const_f32!(1.0),
@@ -98,9 +98,9 @@ impl<'a> InitDataBuilder::ver<'a> {
                         unk_6e8: const_f32!(0.08333333),
                         // gpu-ppm-ki / gpu-avg-power-target-filter-tc?
                         unk_6f0: const_f32!(0.732),
-                        #[ver(V >= V13_0b4)]
+                        #[ver(V >= V13_0B4)]
                         unk_6fc: const_f32!(65536.0),
-                        #[ver(V < V13_0b4)]
+                        #[ver(V < V13_0B4)]
                         unk_6fc: const_f32!(0.0),
                         // gpu-ppm-kp
                         unk_700: const_f32!(6.9),
@@ -111,7 +111,7 @@ impl<'a> InitDataBuilder::ver<'a> {
                         unk_720: 19551,
                         cur_power_mw_2: 0x0,
                         unk_728: 100,
-                        #[ver(V >= V13_0b4)]
+                        #[ver(V >= V13_0B4)]
                         unk_730_0: 0x232800,
                         // gpu-perf-tgt-utilization
                         unk_75c: 85,
@@ -174,13 +174,13 @@ impl<'a> InitDataBuilder::ver<'a> {
                         unk_c4c: const_f32!(0.008),
                         unk_c50: 500,
                         unk_c54: 1000,
-                        #[ver(V >= V13_0b4)]
+                        #[ver(V >= V13_0B4)]
                         unk_c58_0: 24000000,
                         unk_c5c: 30000,
                         unk_c60: 29900,
                         unk_c64: 27500,
                         unk_c68: 55000,
-                        #[ver(V >= V13_0b4)]
+                        #[ver(V >= V13_0B4)]
                         unk_c6c_0: 1320000000,
                         unk_c6c: const_f32!(0.999854564666748),
                         unk_c70: const_f32!(0.00014545454),
@@ -196,7 +196,7 @@ impl<'a> InitDataBuilder::ver<'a> {
                         unk_d40: const_f32!(19551.0),
                         unk_d44: 19551,
                         unk_d4c: 1000,
-                        #[ver(V >= V13_0b4)]
+                        #[ver(V >= V13_0B4)]
                         unk_d54_0: 24000000,
                         unk_d64: 600,
                         unk_d8c: 0x80000000,
@@ -207,7 +207,7 @@ impl<'a> InitDataBuilder::ver<'a> {
                         unk_db8: const_f32!(65536.0),
                         unk_dbc: const_f32!(13.56),
                         unk_dcc: 600,
-                        #[ver(V >= V13_0b4)]
+                        #[ver(V >= V13_0B4)]
                         unk_e10_0: raw::HWDataA130Extra {
                             unk_38: 4,
                             unk_3c: 8000,
@@ -249,7 +249,7 @@ impl<'a> InitDataBuilder::ver<'a> {
                             0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
                             0x12, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0, 0x0, 0x0,
                         ]),
-                        #[ver(V < V13_0b4)]
+                        #[ver(V < V13_0B4)]
                         unk_1638: Array::new([0, 0, 0, 0, 1, 0, 0, 0]),
                         hws1: Self::hw_shared1(),
                         hws2: *Self::hw_shared2()?,
@@ -281,10 +281,10 @@ impl<'a> InitDataBuilder::ver<'a> {
                     ptr,
                     raw::HWDataB::ver {
                         // Userspace VA map related
-                        #[ver(V < V13_0b4)]
+                        #[ver(V < V13_0B4)]
                         unk_0: 0x13_00000000,
                         unk_8: 0x14_00000000,
-                        #[ver(V < V13_0b4)]
+                        #[ver(V < V13_0B4)]
                         unk_10: 0x1_00000000,
                         unk_18: 0xffc00000,
                         unk_20: 0x11_00000000,
@@ -319,38 +319,38 @@ impl<'a> InitDataBuilder::ver<'a> {
                         unk_564: 0x4,
                         unk_568: 0x8,
                         max_pstate: 0x4,
-                        #[ver(V < V13_0b4)]
+                        #[ver(V < V13_0B4)]
                         num_pstates: 0x7,
-                        #[ver(V >= V13_0b4)]
+                        #[ver(V >= V13_0B4)]
                         unk_a84: 0x24,
-                        #[ver(V < V13_0b4)]
+                        #[ver(V < V13_0B4)]
                         unk_a84: 27,
                         unk_a88: 73,
                         unk_a8c: 100,
 
-                        #[ver(V < V13_0b4)]
+                        #[ver(V < V13_0B4)]
                         min_volt: 850,
-                        #[ver(V < V13_0b4)]
+                        #[ver(V < V13_0B4)]
                         unk_ab8: 72,
-                        #[ver(V < V13_0b4)]
+                        #[ver(V < V13_0B4)]
                         unk_abc: 8,
-                        #[ver(V < V13_0b4)]
+                        #[ver(V < V13_0B4)]
                         unk_ac0: 0x1020,
 
-                        #[ver(V >= V13_0b4)]
+                        #[ver(V >= V13_0B4)]
                         unk_ae4: Array::new([0x0, 0x3, 0x7, 0x7]),
-                        #[ver(V < V13_0b4)]
+                        #[ver(V < V13_0B4)]
                         unk_ae4: Array::new([0x0, 0xf, 0x3f, 0x3f]),
                         unk_b10: 0x1,
                         unk_b24: 0x1,
                         unk_b28: 0x1,
                         unk_b2c: 0x1,
-                        #[ver(V >= V13_0b4)]
+                        #[ver(V >= V13_0B4)]
                         unk_b38_0: 1,
-                        #[ver(V >= V13_0b4)]
+                        #[ver(V >= V13_0B4)]
                         unk_b38_4: 1,
                         unk_b38: Array::new([0xffffffff; 12]),
-                        #[ver(V >= V13_0b4)]
+                        #[ver(V >= V13_0B4)]
                         unk_c3c: 0x19,
                         ..Default::default()
                     }
@@ -359,7 +359,7 @@ impl<'a> InitDataBuilder::ver<'a> {
                 raw.chip_id = self.cfg.chip_id;
 
                 raw.max_pstate = self.cfg.perf_states.len() as u32 - 1;
-                #[ver(V < V13_0b4)]
+                #[ver(V < V13_0B4)]
                 {
                     raw.num_pstates = self.cfg.perf_states.len() as u32;
                     raw.min_volt = self.cfg.min_volt;
@@ -386,15 +386,15 @@ impl<'a> InitDataBuilder::ver<'a> {
                     ptr,
                     raw::Globals::ver {
                         ktrace_enable: 0xffffffff,
-                        #[ver(V >= V13_0b4)]
+                        #[ver(V >= V13_0B4)]
                         unk_28_0: 1, // debug
                         unk_28: 1,
-                        #[ver(V >= V13_0b4)]
+                        #[ver(V >= V13_0B4)]
                         unk_2c_0: 0,
                         unk_2c: 1,
-                        #[ver(V >= V13_0b4)]
+                        #[ver(V >= V13_0B4)]
                         unk_30: 0,
-                        #[ver(V < V13_0b4)]
+                        #[ver(V < V13_0B4)]
                         unk_30: 1,
                         unk_34: 120,
                         sub: raw::GlobalsSub::ver {
@@ -421,9 +421,9 @@ impl<'a> InitDataBuilder::ver<'a> {
                         unk_8934: 40,
                         // gpu-avg-power-target-filter-tc
                         unk_8938: 125,
-                        #[ver(V >= V13_0b4)]
+                        #[ver(V >= V13_0B4)]
                         unk_893c: 30000,
-                        #[ver(V < V13_0b4)]
+                        #[ver(V < V13_0B4)]
                         unk_893c: 29520,
                         // gpu-power-zone-target-0 - gpu-power-zone-target-offset-0
                         unk_8940: 29900,
@@ -441,39 +441,39 @@ impl<'a> InitDataBuilder::ver<'a> {
                         unk_89e8: const_f32!(6.9),
                         // gpu-ppm-ki / gpu-avg-power-target-filter-tc?
                         unk_89ec: const_f32!(0.732),
-                        #[ver(V >= V13_0b4)]
+                        #[ver(V >= V13_0B4)]
                         unk_89f4_8: 1,
                         hws1: Self::hw_shared1(),
                         hws2: *Self::hw_shared2()?,
                         unk_900c: 1,
-                        #[ver(V >= V13_0b4)]
+                        #[ver(V >= V13_0B4)]
                         unk_9010_0: 1,
-                        #[ver(V >= V13_0b4)]
+                        #[ver(V >= V13_0B4)]
                         unk_903c: 1,
-                        #[ver(V < V13_0b4)]
+                        #[ver(V < V13_0B4)]
                         unk_903c: 0,
                         unk_10e80: 11,
                         do_init: 1,
                         unk_11020: 40,
                         unk_11024: 10,
                         unk_11028: 250,
-                        #[ver(V >= V13_0b4)]
+                        #[ver(V >= V13_0B4)]
                         unk_1102c_0: 1,
-                        #[ver(V >= V13_0b4)]
+                        #[ver(V >= V13_0B4)]
                         unk_1102c_4: 1,
-                        #[ver(V >= V13_0b4)]
+                        #[ver(V >= V13_0B4)]
                         unk_1102c_8: 100,
-                        #[ver(V >= V13_0b4)]
+                        #[ver(V >= V13_0B4)]
                         unk_1102c_c: 1,
                         idle_to_off_timeout_ms: 2,
                         unk_11034: 40,
                         unk_11038: 5,
                         unk_118e0: 40,
-                        #[ver(V >= V13_0b4)]
+                        #[ver(V >= V13_0B4)]
                         unk_118e4_0: 50,
-                        #[ver(V >= V13_0b4)]
+                        #[ver(V >= V13_0B4)]
                         unk_11edc: 8,
-                        #[ver(V >= V13_0b4)]
+                        #[ver(V >= V13_0B4)]
                         unk_11efc: 8,
                         ..Default::default()
                     }
@@ -636,7 +636,7 @@ impl<'a> InitDataBuilder::ver<'a> {
             Ok(place!(
                 ptr,
                 raw::InitData::ver {
-                    #[ver(V >= V13_0b4)]
+                    #[ver(V >= V13_0B4)]
                     ver_info: Array::new([1, 1, 16, 1]),
                     unk_buf: inner.unk_buf.gpu_pointer(),
                     unk_8: 0,

@@ -170,11 +170,11 @@ pub(crate) struct RawKTraceMsg {
 
 #[versions(AGX)]
 pub(crate) const STATS_SZ: usize = {
-    #[ver(V < V13_0b4)]
+    #[ver(V < V13_0B4)]
     {
         0x2c
     }
-    #[ver(V >= V13_0b4)]
+    #[ver(V >= V13_0B4)]
     {
         0x3c
     }
