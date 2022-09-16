@@ -23,7 +23,7 @@ use core::{mem, ptr, slice};
 use crate::alloc::Allocation;
 
 #[repr(transparent)]
-pub(crate) struct GPUPointer<'a, T>(NonZeroU64, PhantomData<&'a T>);
+pub(crate) struct GPUPointer<'a, T: ?Sized>(NonZeroU64, PhantomData<&'a T>);
 
 impl<'a, T> fmt::Debug for GPUPointer<'a, T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -36,9 +36,9 @@ impl<'a, T> fmt::Debug for GPUPointer<'a, T> {
 }
 
 #[repr(transparent)]
-pub(crate) struct GPUWeakPointer<T>(NonZeroU64, PhantomData<T>);
+pub(crate) struct GPUWeakPointer<T: ?Sized>(NonZeroU64, PhantomData<*const T>);
 
-impl<T> GPUWeakPointer<T> {
+impl<T: ?Sized> GPUWeakPointer<T> {
     // The third argument is a type inference hack
     pub(crate) unsafe fn offset<U>(&self, off: usize, _: *const U) -> GPUWeakPointer<U> {
         GPUWeakPointer::<U>(
