@@ -102,6 +102,7 @@ impl platform::Driver for AsahiDevice {
         let data = Ref::<DeviceData>::from(data);
 
         data.gpu.init()?;
+        data.gpu.test()?;
 
         kernel::drm_device_register!(data.registrations().ok_or(ENXIO)?.as_pinned_mut(), (), 0)?;
 

@@ -71,6 +71,7 @@ pub(crate) struct GPUManager {
 
 pub(crate) trait GPUManager: Send + Sync {
     fn init(&self) -> Result;
+    fn test(&self) -> Result;
 }
 
 #[versions(AGX)]
@@ -262,6 +263,9 @@ impl GPUManager for GPUManager::ver {
         Ok(())
     }
 
+    fn test(&self) -> Result {
+        Ok(())
+    }
 }
 
 #[versions(AGX)]
