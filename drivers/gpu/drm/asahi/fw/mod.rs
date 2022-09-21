@@ -9,3 +9,4 @@ pub(crate) mod event;
 pub(crate) mod initdata;
 pub(crate) mod types;
 pub(crate) mod workqueue;
+pub(crate) mod vertex;
