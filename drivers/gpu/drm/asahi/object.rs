@@ -358,6 +358,27 @@ impl<T: Sized, U: Allocation<T>> GPUArray<T, U> {
         GPUWeakPointer(self.gpu_ptr, PhantomData)
     }
 
+    pub(crate) fn gpu_item_pointer(&self, index: usize) -> GPUPointer<'_, &'_ T> {
+        if index > self.len {
+            panic!("Index {} out of bounds (len: {})", index, self.len);
+        }
+        GPUPointer(
+            NonZeroU64::new(self.gpu_ptr.get() + (index * mem::size_of::<T>()) as u64).unwrap(),
+            PhantomData,
+        )
+    }
+
+    pub(crate) fn weak_item_pointer(&self, index: usize) -> GPUWeakPointer<T> {
+        if index > self.len {
+            panic!("Index {} out of bounds (len: {})", index, self.len);
+        }
+        GPUWeakPointer(
+            NonZeroU64::new(self.gpu_ptr.get() + (index * mem::size_of::<T>()) as u64)
+                .unwrap(),
+            PhantomData,
+        )
+    }
+
     pub(crate) fn len(&self) -> usize {
         self.len
     }
