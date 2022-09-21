@@ -12,13 +12,9 @@ use alloc::boxed::Box;
 use crate::{
     bindings,
     drm::{device, drv, private},
-    to_result,
-    Result,
+    to_result, Result,
 };
-use core::{
-    mem, mem::ManuallyDrop,
-    ops::Deref,
-};
+use core::{mem, mem::ManuallyDrop, ops::Deref};
 
 /// GEM object functions
 pub trait BaseDriverObject<T: BaseObject>: Sync + Send + Sized {
@@ -40,7 +36,7 @@ pub trait BaseObject: IntoGEMObject {
 #[repr(C)]
 pub struct Object<T: DriverObject> {
     obj: bindings::drm_gem_object,
-    dev: ManuallyDrop<device::Device>,
+    dev: ManuallyDrop<device::Device<T::Driver>>,
     pub p: T,
 }
 
@@ -85,7 +81,9 @@ impl<T: IntoGEMObject + Sized> BaseObject for T {
         unsafe {
             bindings::drm_gem_object_get(self.gem_obj() as *const _ as *mut _);
         }
-        ObjectRef { ptr: self as *const _ }
+        ObjectRef {
+            ptr: self as *const _,
+        }
     }
 }
 
@@ -123,13 +121,17 @@ impl<T: DriverObject> Object<T> {
         vm_ops: core::ptr::null_mut(),
     };
 
-    pub fn new(dev: &device::Device, private: T, size: usize) -> Result<ObjectRef<Self>> {
+    pub fn new(
+        dev: &device::Device<T::Driver>,
+        private: T,
+        size: usize,
+    ) -> Result<ObjectRef<Self>> {
         let mut obj: Box<Self> = Box::try_new(Self {
             // SAFETY: This struct is expected to be zero-initialized
             obj: unsafe { mem::zeroed() },
             // SAFETY: The drm subsystem guarantees that the drm_device will live as long as
             // the GEM object lives, so we can conjure a reference out of thin air.
-            dev: ManuallyDrop::new(device::Device { ptr: dev.ptr }),
+            dev: ManuallyDrop::new(unsafe { device::Device::from_raw(dev.ptr) }),
             p: private,
         })?;
 
@@ -148,7 +150,7 @@ impl<T: DriverObject> Object<T> {
         Ok(obj_ref)
     }
 
-    pub fn dev(&self) -> &device::Device {
+    pub fn dev(&self) -> &device::Device<T::Driver> {
         &self.dev
     }
 }

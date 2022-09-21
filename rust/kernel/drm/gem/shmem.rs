@@ -6,12 +6,15 @@
 //! C header: [`include/linux/drm/drm_gem_shmem_helper.h`](../../../../include/linux/drm/drm_gem_shmem_helper.h)
 
 use crate::drm::{device, drv, gem, private};
-use crate::{error::{to_result, from_kernel_err_ptr}, prelude::*};
+use crate::{
+    error::{from_kernel_err_ptr, to_result},
+    prelude::*,
+};
 use core::{
+    marker::PhantomData,
     mem,
     mem::{ManuallyDrop, MaybeUninit},
     slice,
-    marker::PhantomData,
 };
 
 use gem::BaseObject;
@@ -19,7 +22,7 @@ use gem::BaseObject;
 #[repr(C)]
 pub struct Object<T: DriverObject> {
     obj: bindings::drm_gem_shmem_object,
-    dev: ManuallyDrop<device::Device>,
+    dev: ManuallyDrop<device::Device<T::Driver>>,
     p: T,
 }
 
@@ -28,7 +31,7 @@ pub struct Object<T: DriverObject> {
 #[repr(C)]
 struct NewObject<T: DriverObject> {
     obj: bindings::drm_gem_shmem_object,
-    dev: MaybeUninit<ManuallyDrop<device::Device>>,
+    dev: MaybeUninit<ManuallyDrop<device::Device<T::Driver>>>,
     p: MaybeUninit<T>,
 }
 
@@ -48,8 +51,13 @@ unsafe extern "C" fn gem_create_object<T: DriverObject>(
     _dev: *mut bindings::drm_device,
     _size: usize,
 ) -> *mut bindings::drm_gem_object {
-    let p =
-        unsafe { bindings::krealloc(core::ptr::null(), Object::<T>::SIZE, bindings::GFP_KERNEL | bindings::__GFP_ZERO) };
+    let p = unsafe {
+        bindings::krealloc(
+            core::ptr::null(),
+            Object::<T>::SIZE,
+            bindings::GFP_KERNEL | bindings::__GFP_ZERO,
+        )
+    };
 
     if p.is_null() {
         return ENOMEM.to_ptr();
@@ -217,7 +225,7 @@ impl<T: DriverObject> SGTable<T> {
         SGTableIter {
             left: unsafe { (*self.sgt).nents } as usize,
             sg: unsafe { (*self.sgt).sgl },
-            _p: PhantomData
+            _p: PhantomData,
         }
     }
 }
@@ -253,7 +261,11 @@ impl<T: DriverObject> Object<T> {
         &self.obj as *const _ as *mut _
     }
 
-    pub fn new(dev: &device::Device, private: T, size: usize) -> Result<gem::ObjectRef<Self>> {
+    pub fn new(
+        dev: &device::Device<T::Driver>,
+        private: T,
+        size: usize,
+    ) -> Result<gem::ObjectRef<Self>> {
         // SAFETY: This function can be called as long as the ALLOC_OPS are set properly
         // for this driver.
         let p = unsafe { bindings::drm_gem_shmem_create(dev.raw() as *mut _, size) };
@@ -264,8 +276,9 @@ impl<T: DriverObject> Object<T> {
         let new: &mut NewObject<T> = unsafe { &mut *(p as *mut _) };
 
         new.p.write(private);
-        new.dev
-            .write(ManuallyDrop::new(device::Device { ptr: dev.ptr }));
+        new.dev.write(ManuallyDrop::new(unsafe {
+            device::Device::from_raw(dev.ptr)
+        }));
 
         // SAFETY: p is fully initialized now, so we can take a mutable reference
         T::init(unsafe { &mut *p })?;
@@ -276,13 +289,14 @@ impl<T: DriverObject> Object<T> {
         Ok(obj_ref)
     }
 
-    pub fn dev(&self) -> &device::Device {
+    pub fn dev(&self) -> &device::Device<T::Driver> {
         &self.dev
     }
 
     pub fn sg_table(&self) -> Result<SGTable<T>> {
-        let sgt =
-            from_kernel_err_ptr(unsafe { bindings::drm_gem_shmem_get_pages_sgt(self.mut_shmem()) })?;
+        let sgt = from_kernel_err_ptr(unsafe {
+            bindings::drm_gem_shmem_get_pages_sgt(self.mut_shmem())
+        })?;
 
         Ok(SGTable {
             sgt,
