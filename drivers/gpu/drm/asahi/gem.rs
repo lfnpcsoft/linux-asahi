@@ -6,24 +6,22 @@
 //! Asahi GEM object implementation
 
 use kernel::{
-    bindings,
-    c_str,
-    drm,
-    drm::{drv, device, gem, gem::shmem},
-    error::{Result, to_result},
+    bindings, c_str, drm,
+    drm::{device, drv, gem, gem::shmem},
+    error::{to_result, Result},
     io_mem::IoMem,
     module_platform_driver, of, platform,
     prelude::*,
     soc::apple::rtkit,
-    sync::{Ref, RefBorrow},
     sync::smutex::Mutex,
+    sync::{Ref, RefBorrow},
 };
 
 use kernel::drm::gem::BaseObject;
 
-pub(crate) struct DriverObject {
+use crate::driver::AsahiDevice;
 
-}
+pub(crate) struct DriverObject {}
 
 pub(crate) type Object = shmem::Object<DriverObject>;
 
@@ -45,7 +43,6 @@ impl ObjectRef {
         if self.mapping.is_some() {
             Err(EBUSY)
         } else {
-
             let sgt = self.gem.sg_table()?;
             let mapping = context.map(self.gem.size(), &mut sgt.iter())?;
 
@@ -55,11 +52,10 @@ impl ObjectRef {
     }
 }
 
-pub(crate) fn new_object(dev: &device::Device, size: usize) -> Result<ObjectRef> {
-    let private = DriverObject {
-    };
+pub(crate) fn new_object(dev: &AsahiDevice, size: usize) -> Result<ObjectRef> {
+    let private = DriverObject {};
     Ok(ObjectRef {
-        gem:shmem::Object::new(dev, private, size)?,
+        gem: shmem::Object::new(dev, private, size)?,
         mapping: None,
         vmap: None,
     })
@@ -76,7 +72,7 @@ impl gem::BaseDriverObject<Object> for DriverObject {
 }
 
 impl shmem::DriverObject for DriverObject {
-    type Driver = crate::driver::AsahiDevice;
+    type Driver = crate::driver::AsahiDriver;
 }
 
 impl rtkit::Buffer for ObjectRef {
