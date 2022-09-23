@@ -1632,12 +1632,11 @@ void dcp_flush(struct drm_crtc *crtc, struct drm_atomic_state *state)
 	}
 
 	if (!has_surface) {
-		if (crtc_state->enable && crtc_state->active) {
+		if (crtc_state->enable && crtc_state->active && !crtc_state->planes_changed) {
 			schedule_work(&dcp->vblank_wq);
 			return;
 		}
 
-		WARN_ON(!has_surface);
 		req->clear = 1;
 	}
 	do_swap(dcp, NULL, NULL);
