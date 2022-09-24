@@ -6,6 +6,7 @@
 
 use super::event;
 use super::types::*;
+use crate::event::EventValue;
 use crate::trivial_gpustruct;
 
 #[derive(Debug)]
@@ -19,7 +20,7 @@ pub(crate) enum CommandType {
     InitBufferManager = 6,
 }
 
-pub(crate) trait Command : GPUStruct {}
+pub(crate) trait Command: GPUStruct {}
 
 pub(crate) mod raw {
     use super::*;
@@ -28,10 +29,10 @@ pub(crate) mod raw {
     #[repr(C)]
     pub(crate) struct Barrier {
         pub(crate) tag: CommandType,
-        pub(crate) stamp: GPUWeakPointer<u32>,
-        pub(crate) wait_value: u32,
-        pub(crate) event: u32,
-        pub(crate) stamp_self: u32,
+        pub(crate) wait_stamp: GPUWeakPointer<FWStamp>,
+        pub(crate) wait_value: EventValue,
+        pub(crate) wait_slot: u32,
+        pub(crate) stamp_self: EventValue,
         pub(crate) uuid: u32,
         pub(crate) unk: u32,
     }
