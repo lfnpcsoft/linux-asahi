@@ -5,6 +5,7 @@
 pub mod device;
 pub mod drv;
 pub mod file;
+pub mod ioctl;
 pub mod gem;
 pub mod mm;
 
