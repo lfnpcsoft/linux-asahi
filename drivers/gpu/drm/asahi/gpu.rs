@@ -16,7 +16,7 @@ use kernel::{
 use crate::driver::AsahiDevice;
 use crate::fw::channels::DeviceControlMsg;
 use crate::fw::channels::PipeType;
-use crate::{alloc, channel, event, fw, gem, hw, initdata, mmu};
+use crate::{alloc, buffer, channel, event, fw, gem, hw, initdata, mmu};
 
 const EP_FIRMWARE: u8 = 0x20;
 const EP_DOORBELL: u8 = 0x21;
@@ -69,6 +69,7 @@ pub(crate) struct GPUManager {
     tx_channels: Mutex<TXChannels>,
     pipes: PipeChannels,
     event_manager: Ref<event::EventManager>,
+    buffer_mgr: buffer::BufferManager,
 }
 
 pub(crate) trait GPUManager: Send + Sync {
@@ -173,6 +174,7 @@ impl GPUManager::ver {
             }),
             pipes,
             event_manager,
+            buffer_mgr: buffer::BufferManager::new()?,
             alloc: Mutex::new(alloc),
         })?;
 
