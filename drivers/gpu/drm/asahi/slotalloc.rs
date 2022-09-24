@@ -15,7 +15,7 @@ use kernel::{
 pub(crate) trait SlotItem {
     type Owner;
 
-    fn release(&mut self) {}
+    fn release(&mut self, _owner: &mut Self::Owner, _slot: u32) {}
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -228,8 +228,10 @@ impl<T: SlotItem> Drop for Guard<T> {
             );
         } else {
             inner.drop_count += 1;
-            inner.slots[self.token.slot as usize] = Some(Entry{
-                item: self.item.take().expect("Guard lost its item"),
+            let mut item = self.item.take().expect("Guard lost its item");
+            item.release(&mut inner.owner, self.token.slot);
+            inner.slots[self.token.slot as usize] = Some(Entry {
+                item,
                 get_time: self.token.time,
                 drop_time: inner.drop_count,
             });
