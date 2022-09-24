@@ -19,6 +19,7 @@ pub(crate) use core::sync::atomic::{
 pub(crate) type GPUObject<T> = object::GPUObject<T, alloc::SimpleAllocation<T>>;
 pub(crate) type GPUArray<T> = object::GPUArray<T, alloc::SimpleAllocation<T>>;
 pub(crate) use crate::alloc::Allocator as _Allocator;
+pub(crate) use crate::event::EventValue;
 pub(crate) type Allocator = alloc::SimpleAllocator;
 pub(crate) use core::fmt::Debug;
 pub(crate) use core::marker::PhantomData;
