@@ -205,7 +205,7 @@ pub(crate) struct FWLogChannel {
 impl FWLogChannel {
     pub(crate) fn new(alloc: &mut gpu::KernelAllocators) -> Result<FWLogChannel> {
         Ok(FWLogChannel {
-            ch: RXChannel::<FWLogChannelState, RawFWLogMsg>::new(alloc, 0x100)?,
+            ch: RXChannel::<FWLogChannelState, RawFWLogMsg>::new(alloc, 0x600)?,
         })
     }
 
