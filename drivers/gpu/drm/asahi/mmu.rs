@@ -265,6 +265,7 @@ impl UATInner {
 unsafe impl Send for UATInner {}
 
 pub(crate) struct UAT {
+    dev: device::Device,
     pagetables_rgn: UATRegion,
 
     inner: Ref<Mutex<UATInner>>,
@@ -659,6 +660,10 @@ impl UAT {
         ))
     }
 
+    pub(crate) fn new_vm(&self) -> Result<VM> {
+        VM::new(self.dev.clone(), self.inner.clone(), false)
+    }
+
     pub(crate) fn new(dev: &dyn device::RawDevice) -> Result<Self> {
         dev_info!(dev, "MMU: Initializing...\n");
 
@@ -677,6 +682,7 @@ impl UAT {
         let ttb1 = kernel_vm.ttb();
 
         let uat = Self {
+            dev: device::Device::from_dev(dev),
             pagetables_rgn,
             kernel_vm,
             inner,
