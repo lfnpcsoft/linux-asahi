@@ -74,20 +74,25 @@ unsafe extern "C" fn gem_create_object<T: DriverObject>(
 }
 
 unsafe extern "C" fn free_callback<T: DriverObject>(obj: *mut bindings::drm_gem_object) {
-    // SAFETY: All of our objects are Object<T>.
-    let p = crate::container_of!(obj, Object<T>, obj) as *mut _;
+    // Only attempt to free the Rust structures of objects that are not PRIME imports
+    // SAFETY: This is just checking a field in the incoming obj for non-NULL.
+    if unsafe { (*obj).import_attach }.is_null() {
+        // SAFETY: If we get this far, the object is an Object<T>.
+        let p = crate::container_of!(obj, Object<T>, obj) as *mut _;
 
-    // SAFETY: The pointer must be valid since we used container_of!()
-    T::uninit(unsafe { &mut *p });
+        // SAFETY: The pointer must be valid since we used container_of!()
+        T::uninit(unsafe { &mut *p });
 
-    // SAFETY: p is never used after this
-    unsafe {
-        core::ptr::drop_in_place(p);
+        // SAFETY: p is never used after this
+        unsafe {
+            core::ptr::drop_in_place(p);
+        }
     }
 
-    // SAFETY: This pointer has to be valid, since p is valid
+    // SAFETY: This pointer has to be valid, since p is valid.
+    // It is okay to cast drm_gem_object as drm_gem_shmem_object.
     unsafe {
-        bindings::drm_gem_shmem_free(&mut (&mut *p).obj);
+        bindings::drm_gem_shmem_free(obj as *mut _);
     }
 }
 
