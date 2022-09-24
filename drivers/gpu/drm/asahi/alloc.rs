@@ -11,8 +11,9 @@ use kernel::{
     prelude::*,
 };
 
-use crate::object::{GPUArray, GPUObject, GPUStruct};
 use crate::driver::AsahiDevice;
+use crate::mmu;
+use crate::object::{GPUArray, GPUObject, GPUStruct, GPUWeakPointer};
 
 use alloc::fmt;
 use core::fmt::{Debug, Formatter};
@@ -73,7 +74,7 @@ pub(crate) struct SimpleAllocation<T> {
     ptr: *mut T,
     gpu_ptr: u64,
     size: usize,
-    vm: crate::mmu::VM,
+    vm: mmu::VM,
     obj: crate::gem::ObjectRef,
 }
 
@@ -104,19 +105,39 @@ impl<T> Allocation<T> for SimpleAllocation<T> {
 
 pub(crate) struct SimpleAllocator {
     dev: AsahiDevice,
-    vm: crate::mmu::VM,
+    start: u64,
+    end: u64,
+    prot: u32,
+    vm: mmu::VM,
     min_align: usize,
 }
 
 impl SimpleAllocator {
-    pub(crate) fn new(
+    pub(crate) fn new(dev: &AsahiDevice, vm: &mmu::VM, min_align: usize, prot: u32) -> SimpleAllocator {
+        SimpleAllocator {
+            dev: dev.clone(),
+            vm: vm.clone(),
+            start: 0,
+            end: u64::MAX,
+            prot: prot,
+            min_align,
+        }
+    }
+
+    pub(crate) fn new_with_range(
         dev: &AsahiDevice,
-        vm: &crate::mmu::VM,
+        vm: &mmu::VM,
+        start: u64,
+        end: u64,
+        prot: u32,
         min_align: usize,
     ) -> SimpleAllocator {
         SimpleAllocator {
             dev: dev.clone(),
             vm: vm.clone(),
+            start,
+            end,
+            prot,
             min_align,
         }
     }
@@ -124,7 +145,7 @@ impl SimpleAllocator {
     #[inline(never)]
     fn alloc_object<T: GPUStruct>(&mut self) -> Result<SimpleAllocation<T>> {
         let size = mem::size_of::<T::Raw<'static>>();
-        let size_aligned = (size + crate::mmu::UAT_PGSZ - 1) & !crate::mmu::UAT_PGMSK;
+        let size_aligned = (size + mmu::UAT_PGSZ - 1) & !mmu::UAT_PGMSK;
         let align = self.min_align.max(mem::align_of::<T::Raw<'static>>());
         let offset = (size_aligned - size) & !(align - 1);
 
@@ -137,19 +158,25 @@ impl SimpleAllocator {
             offset
         );
 
-        let mut obj = crate::gem::new_object(&self.dev, size_aligned)?;
+        let mut obj = crate::gem::new_kernel_object(&self.dev, size_aligned)?;
         let p = obj.vmap()?.as_mut_ptr() as *mut u8;
-        let map = obj.map_into(&self.vm)?;
+        let iova = obj.map_into_range(
+            &self.vm,
+            self.start,
+            self.end,
+            self.min_align.max(mmu::UAT_PGSZ) as u64,
+            self.prot,
+        )?;
 
         let ptr = unsafe { p.add(offset) } as *mut T;
-        let gpu_ptr = (map.iova() + offset) as u64;
+        let gpu_ptr = (iova + offset) as u64;
 
         dev_info!(
             &self.dev,
             "Allocator::new -> {:#?} / {:#?} | {:#x} / {:#x}",
             p,
             ptr,
-            map.iova(),
+            iova,
             gpu_ptr
         );
 
@@ -221,7 +248,7 @@ impl Allocator for SimpleAllocator {
         count: usize,
     ) -> Result<GPUArray<T, Self::Allocation<T>>> {
         let size = mem::size_of::<T>() * count;
-        let size_aligned = (size + crate::mmu::UAT_PGSZ - 1) & !crate::mmu::UAT_PGMSK;
+        let size_aligned = (size + mmu::UAT_PGSZ - 1) & !mmu::UAT_PGMSK;
         let align = self.min_align.max(mem::align_of::<T>());
         let offset = (size_aligned - size) & !(align - 1);
 
@@ -236,18 +263,24 @@ impl Allocator for SimpleAllocator {
             count
         );
 
-        let mut obj = crate::gem::new_object(&self.dev, size_aligned)?;
+        let mut obj = crate::gem::new_kernel_object(&self.dev, size_aligned)?;
         let p = obj.vmap()?.as_mut_ptr() as *mut u8;
         let ptr = unsafe { p.add(offset) } as *mut T;
-        let map = obj.map_into(&self.vm)?;
-        let gpu_ptr = (map.iova() + offset) as u64;
+        let iova = obj.map_into_range(
+            &self.vm,
+            self.start,
+            self.end,
+            self.min_align.max(mmu::UAT_PGSZ) as u64,
+            self.prot,
+        )?;
+        let gpu_ptr = (iova + offset) as u64;
 
         dev_info!(
             &self.dev,
             "Allocator::array_empty -> {:#?} / {:#?} | {:#x} / {:#x}",
             p,
             ptr,
-            map.iova(),
+            iova,
             gpu_ptr
         );
 
