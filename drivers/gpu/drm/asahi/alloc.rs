@@ -42,13 +42,19 @@ pub(crate) trait Allocator {
         callback: impl for<'a> FnOnce(&'a T, *mut MaybeUninit<T::Raw<'a>>) -> Result<&'a mut T::Raw<'a>>,
     ) -> Result<GPUObject<T, Self::Allocation<T>>>;
 
-    fn new_inplace<T: GPUStruct + Default>(
+    fn new_inplace<T: GPUStruct>(
         &mut self,
         inner: T,
         callback: impl for<'a> FnOnce(&'a T, *mut MaybeUninit<T::Raw<'a>>) -> Result<&'a mut T::Raw<'a>>,
-    ) -> Result<GPUObject<T, Self::Allocation<T>>>
-    where
-        <T as GPUStruct>::Raw<'static>: Default;
+    ) -> Result<GPUObject<T, Self::Allocation<T>>>;
+
+    fn prealloc<T: GPUStruct>(&mut self) -> Result<Self::Allocation<T>>;
+
+    fn new_prealloc<T: GPUStruct>(
+        &mut self,
+        inner_cb: impl FnOnce(GPUWeakPointer<T>) -> Result<Box<T>>,
+        raw_cb: impl for<'a> FnOnce(&'a T, *mut MaybeUninit<T::Raw<'a>>) -> Result<&'a mut T::Raw<'a>>,
+    ) -> Result<GPUObject<T, Self::Allocation<T>>>;
 
     fn new_default<T: GPUStruct + Default>(&mut self) -> Result<GPUObject<T, Self::Allocation<T>>>
     where
@@ -194,6 +200,20 @@ impl Allocator for SimpleAllocator {
         for<'a> <T as GPUStruct>::Raw<'a>: Default,
     {
         GPUObject::<T, Self::Allocation<T>>::new_default(self.alloc_object()?)
+    }
+
+    #[inline(never)]
+    fn prealloc<T: GPUStruct>(&mut self) -> Result<Self::Allocation<T>> {
+        self.alloc_object()
+    }
+
+    #[inline(never)]
+    fn new_prealloc<T: GPUStruct>(
+        &mut self,
+        inner_cb: impl FnOnce(GPUWeakPointer<T>) -> Result<Box<T>>,
+        raw_cb: impl for<'a> FnOnce(&'a T, *mut MaybeUninit<T::Raw<'a>>) -> Result<&'a mut T::Raw<'a>>,
+    ) -> Result<GPUObject<T, Self::Allocation<T>>> {
+        GPUObject::<T, Self::Allocation<T>>::new_prealloc(self.alloc_object()?, inner_cb, raw_cb)
     }
 
     fn array_empty<T: Sized + Default>(
