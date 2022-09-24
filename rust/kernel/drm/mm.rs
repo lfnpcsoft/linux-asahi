@@ -24,6 +24,9 @@ pub struct NodeData<T> {
     inner: T,
 }
 
+unsafe impl<T: Send> Send for NodeData<T> {}
+unsafe impl<T: Sync> Sync for NodeData<T> {}
+
 #[repr(u32)]
 pub enum InsertMode {
     Best = bindings::drm_mm_insert_mode_DRM_MM_INSERT_BEST,
@@ -110,3 +113,5 @@ impl<T> Drop for Allocator<T> {
         unsafe { bindings::drm_mm_takedown(self.mm.get()); }
     }
 }
+
+unsafe impl<T> Send for Allocator<T> {}
