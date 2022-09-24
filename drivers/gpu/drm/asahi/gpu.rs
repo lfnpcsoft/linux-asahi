@@ -145,6 +145,8 @@ impl GPUManager::ver {
             })?;
         }
 
+        let event_manager = Ref::try_new(event::EventManager::new(&mut alloc)?)?;
+
         let mut mgr = UniqueRef::try_new(GPUManager::ver {
             dev: dev.clone(),
             initialized: false,
@@ -153,7 +155,7 @@ impl GPUManager::ver {
             io_mappings: Vec::new(),
             rtkit: Mutex::new(None),
             rx_channels: Mutex::new(RXChannels::ver {
-                event: channel::EventChannel::new(&mut alloc)?,
+                event: channel::EventChannel::new(&mut alloc, event_manager.clone())?,
                 fw_log: channel::FWLogChannel::new(&mut alloc)?,
                 ktrace: channel::KTraceChannel::new(&mut alloc)?,
                 stats: channel::StatsChannel::ver::new(&mut alloc)?,
@@ -162,7 +164,7 @@ impl GPUManager::ver {
                 device_control: channel::DeviceControlChannel::new(&mut alloc)?,
             }),
             pipes,
-            event_manager: Ref::try_new(event::EventManager::new(&mut alloc)?)?,
+            event_manager,
             alloc: Mutex::new(alloc),
         })?;
 

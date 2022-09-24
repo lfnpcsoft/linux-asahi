@@ -7,9 +7,11 @@
 use crate::fw::channels::*;
 use crate::fw::initdata::{raw, ChannelRing};
 use crate::fw::types::*;
-use crate::gpu;
+use crate::{event, gpu};
 use core::time::Duration;
-use kernel::{dbg, delay::coarse_sleep, prelude::*};
+use kernel::{dbg, delay::coarse_sleep, prelude::*, sync::Ref};
+
+pub(crate) use crate::fw::channels::PipeType;
 
 pub(crate) struct RXChannel<T: RXChannelState, U: Copy + Default>
 where
@@ -142,12 +144,17 @@ impl PipeChannel {
 
 pub(crate) struct EventChannel {
     ch: RXChannel<ChannelState, RawEventMsg>,
+    mgr: Ref<event::EventManager>,
 }
 
 impl EventChannel {
-    pub(crate) fn new(alloc: &mut gpu::KernelAllocators) -> Result<EventChannel> {
+    pub(crate) fn new(
+        alloc: &mut gpu::KernelAllocators,
+        mgr: Ref<event::EventManager>,
+    ) -> Result<EventChannel> {
         Ok(EventChannel {
             ch: RXChannel::<ChannelState, RawEventMsg>::new(alloc, 0x100)?,
+            mgr,
         })
     }
 
@@ -157,7 +164,36 @@ impl EventChannel {
 
     pub(crate) fn poll(&mut self) {
         while let Some(msg) = self.ch.get(0) {
-            pr_info!("Event: {:?}", msg);
+            let tag = unsafe { msg.raw.0 };
+            match tag {
+                0..=EVENT_MAX => {
+                    let msg = unsafe { msg.msg };
+                    match msg {
+                        EventMsg::Fault => {
+                            pr_crit!("GPU faulted!");
+                        }
+                        EventMsg::Timeout { .. } => {
+                            pr_crit!("GPU timeout! {:?}", msg);
+                        }
+                        EventMsg::Flag { firing, .. } => {
+                            pr_crit!("GPU flag event: {:?}", msg);
+                            for i in 0..3 {
+                                for j in 0..32 {
+                                    if firing[i] & (1u32 << j) != 0 {
+                                        self.mgr.signal((i * 32 + j) as u32);
+                                    }
+                                }
+                            }
+                        }
+                        msg => {
+                            pr_crit!("Unknown event message: {:?}", msg);
+                        }
+                    }
+                }
+                _ => {
+                    pr_warn!("Unknown event message: {:?}", unsafe { msg.raw });
+                }
+            }
         }
     }
 }
