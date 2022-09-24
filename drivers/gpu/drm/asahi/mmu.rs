@@ -272,6 +272,7 @@ pub(crate) struct UAT {
     slots: slotalloc::SlotAllocator<SlotInner>,
 
     kernel_vm: VM,
+    kernel_lower_vm: VM,
 }
 
 impl Drop for UATRegion {
@@ -678,13 +679,17 @@ impl UAT {
             ttbs_rgn,
         }))?;
 
+        let kernel_lower_vm = VM::new(device::Device::from_dev(dev), inner.clone(), false)?;
         let kernel_vm = VM::new(device::Device::from_dev(dev), inner.clone(), true)?;
+
+        let ttb0 = kernel_lower_vm.ttb();
         let ttb1 = kernel_vm.ttb();
 
         let uat = Self {
             dev: device::Device::from_dev(dev),
             pagetables_rgn,
             kernel_vm,
+            kernel_lower_vm,
             inner,
             slots: slotalloc::SlotAllocator::new(UAT_USER_CTX as u32, (), |_inner, _slot| {
                 SlotInner()
@@ -701,7 +706,7 @@ impl UAT {
 
         let ttbs = inner.ttbs();
 
-        ttbs[0].ttb0.store(0, Ordering::Relaxed);
+        ttbs[0].ttb0.store(ttb0 | TTBR_VALID, Ordering::Relaxed);
         ttbs[0]
             .ttb1
             .store(uat.pagetables_rgn.base | TTBR_VALID, Ordering::Relaxed);
