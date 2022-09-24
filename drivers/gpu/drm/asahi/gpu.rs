@@ -14,6 +14,7 @@ use kernel::{
 
 use crate::driver::AsahiDevice;
 use crate::fw::channels::DeviceControlMsg;
+use crate::fw::channels::PipeType;
 use crate::{alloc, channel, event, fw, gem, hw, initdata, mmu};
 
 const EP_FIRMWARE: u8 = 0x20;
@@ -43,9 +44,9 @@ struct RXChannels {
 }
 
 struct PipeChannels {
-    pub(crate) vtx: Mutex<channel::PipeChannel>,
-    pub(crate) frag: Mutex<channel::PipeChannel>,
-    pub(crate) comp: Mutex<channel::PipeChannel>,
+    pub(crate) vtx: Vec<Mutex<channel::PipeChannel>>,
+    pub(crate) frag: Vec<Mutex<channel::PipeChannel>>,
+    pub(crate) comp: Vec<Mutex<channel::PipeChannel>>,
 }
 
 struct TXChannels {
@@ -65,7 +66,7 @@ pub(crate) struct GPUManager {
     rtkit: Mutex<Option<rtkit::RTKit<GPUManager::ver>>>,
     rx_channels: Mutex<RXChannels::ver>,
     tx_channels: Mutex<TXChannels>,
-    pipes: Vec<PipeChannels>,
+    pipes: PipeChannels,
     event_manager: Ref<event::EventManager>,
 }
 
@@ -114,10 +115,7 @@ impl rtkit::Operations for GPUManager::ver {
 
 #[versions(AGX)]
 impl GPUManager::ver {
-    pub(crate) fn new(
-        dev: &AsahiDevice,
-        cfg: &hw::HWConfig,
-    ) -> Result<Ref<GPUManager::ver>> {
+    pub(crate) fn new(dev: &AsahiDevice, cfg: &hw::HWConfig) -> Result<Ref<GPUManager::ver>> {
         let uat = mmu::UAT::new(dev)?;
         let mut alloc = KernelAllocators {
 //             private: alloc::SimpleAllocator::new(dev, uat.kernel_vm(), 0x20, mmu::PROT_FW_PRIV_RW),
@@ -135,14 +133,22 @@ impl GPUManager::ver {
 
         mem::drop(builder);
 
-        let mut pipes: Vec<PipeChannels> = Vec::new();
+        let mut pipes = PipeChannels {
+            vtx: Vec::new(),
+            frag: Vec::new(),
+            comp: Vec::new(),
+        };
 
         for _i in 0..=NUM_PIPES - 1 {
-            pipes.try_push(PipeChannels {
-                vtx: Mutex::new(channel::PipeChannel::new(&mut alloc)?),
-                frag: Mutex::new(channel::PipeChannel::new(&mut alloc)?),
-                comp: Mutex::new(channel::PipeChannel::new(&mut alloc)?),
-            })?;
+            pipes
+                .vtx
+                .try_push(Mutex::new(channel::PipeChannel::new(&mut alloc)?))?;
+            pipes
+                .frag
+                .try_push(Mutex::new(channel::PipeChannel::new(&mut alloc)?))?;
+            pipes
+                .comp
+                .try_push(Mutex::new(channel::PipeChannel::new(&mut alloc)?))?;
         }
 
         let event_manager = Ref::try_new(event::EventManager::new(&mut alloc)?)?;
@@ -191,11 +197,17 @@ impl GPUManager::ver {
 
         let mut p_pipes: Vec<fw::initdata::raw::PipeChannels> = Vec::new();
 
-        for p in &mgr.pipes {
+        for ((v, f), c) in mgr
+            .pipes
+            .vtx
+            .iter()
+            .zip(&mgr.pipes.frag)
+            .zip(&mgr.pipes.comp)
+        {
             p_pipes.try_push(fw::initdata::raw::PipeChannels {
-                vtx: p.vtx.lock().to_raw(),
-                frag: p.frag.lock().to_raw(),
-                comp: p.comp.lock().to_raw(),
+                vtx: v.lock().to_raw(),
+                frag: f.lock().to_raw(),
+                comp: c.lock().to_raw(),
             })?;
         }
 
